@@ -55,7 +55,10 @@ INSTALLED_APPS = [
     "dj_rest_auth.registration",
     "phonenumber_field",
     # local
-    "accounts"
+    "accounts",
+    "books",
+    "borrowings",
+    "payments",
 ]
 
 MIDDLEWARE = [
