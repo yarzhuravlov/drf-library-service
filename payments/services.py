@@ -1,5 +1,6 @@
 import os
 from datetime import timedelta
+from decimal import Decimal
 
 import stripe
 from django.urls import reverse
@@ -12,14 +13,25 @@ from payments.models import Payment
 stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
 currency = os.environ.get("DEFAULT_CURRENCY", "usd")
 expiration_minutes = os.environ.get("EXPIRATION_MINUTES", 30)
-
-success_url = "http://example.com/success"
-cancel_url = "http://example.com/cancel"
+fine_multiplier = os.environ.get("FINE_MULTIPLIER", "0.3")
 
 
 def calc_borrowing_total_price(borrowing: Borrowing):
     borrowing_period = (borrowing.expected_return - borrowing.borrow_date).days
     return borrowing_period * borrowing.book.daily_fee
+
+
+def calc_borrowing_fine_price(
+    borrowing: Borrowing,
+    fine_multiplier: str = fine_multiplier,
+):
+    overdue_days = (borrowing.actual_return - borrowing.expected_return).days
+    fine = overdue_days * int(
+        (
+            str(Decimal(borrowing.book.daily_fee) * Decimal(fine_multiplier))
+        ).split(".")[0]
+    )
+    return fine
 
 
 def create_stripe_session(
@@ -71,6 +83,21 @@ def create_payment(borrowing: Borrowing, request: Request) -> Payment:
         money_to_pay=borrowing_total_price,
         type=Payment.Types.PAYMENT,
     )
+    return payment
+
+
+def create_fine_payment(borrowing: Borrowing, request: Request):
+    fine = calc_borrowing_fine_price(borrowing)
+    session = create_stripe_session(borrowing, fine, request)
+
+    payment = Payment.objects.create(
+        borrowing=borrowing,
+        session_url=session.url,
+        session_id=session.id,
+        money_to_pay=fine,
+        type=Payment.Types.FINE,
+    )
+
     return payment
 
 
