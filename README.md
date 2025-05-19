@@ -1,1 +1,0 @@
-# drf-library-service

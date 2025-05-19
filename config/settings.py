@@ -10,7 +10,11 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import os
 from pathlib import Path
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -60,6 +64,7 @@ INSTALLED_APPS = [
     "borrowings",
     "payments",
     "notifications",
+    "telegram_bot",
 ]
 
 SITE_ID = 1
@@ -164,3 +169,43 @@ if DEBUG:
     REST_FRAMEWORK["DEFAULT_AUTHENTICATION_CLASSES"].append(
         "rest_framework.authentication.SessionAuthentication"
     )
+
+# ==============================================================================
+# НАЛАШТУВАННЯ REDIS
+# ==============================================================================
+REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
+REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
+REDIS_DB = int(os.getenv("REDIS_DB", 0))
+REDIS_PASSWORD = os.getenv(
+    "REDIS_PASSWORD", None
+)  # None якщо пароль відсутній
+
+# ==============================================================================
+# НАЛАШТУВАННЯ CELERY
+# ==============================================================================
+CELERY_BROKER_URL = os.getenv(
+    "CELERY_BROKER_URL",
+    f'redis://{":" + REDIS_PASSWORD + "@" if REDIS_PASSWORD else ""}{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}',
+)
+CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", CELERY_BROKER_URL)
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_TIMEZONE = TIME_ZONE
+# CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
+
+# ==============================================================================
+# НАЛАШТУВАННЯ СПОВІЩЕНЬ (Notifications App)
+# ==============================================================================
+NOTIFICATIONS_QUEUE = os.getenv("NOTIFICATIONS_QUEUE", "notifications")
+LOG_LEVEL_NOTIFICATIONS = os.getenv("LOG_LEVEL_NOTIFICATIONS", "INFO")
+
+# ==============================================================================
+# НАЛАШТУВАННЯ ТЕЛЕГРАМ БОТА (Telegram Bot)
+# ==============================================================================
+TELEGRAM_BOT_TOKEN = (
+    os.getenv("TELEGRAM_BOT_TOKEN")
+    or os.getenv("BOT_TOKEN")
+    or os.getenv("TELEGRAM_TOKEN")
+)
+LOG_LEVEL_TELEGRAM_BOT = os.getenv("LOG_LEVEL_TELEGRAM_BOT", "INFO")
