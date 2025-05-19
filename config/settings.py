@@ -49,19 +49,16 @@ INSTALLED_APPS = [
     "debug_toolbar",
     "rest_framework.authtoken",
     "dj_rest_auth",
+    "dj_rest_auth.registration",
     "allauth",
     "allauth.account",
     "allauth.socialaccount",
-    "dj_rest_auth.registration",
-    "phonenumber_field",
     # local
     "accounts",
     "books",
     "borrowings",
     "payments",
 ]
-
-SITE_ID = 1
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -74,14 +71,6 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
-
-AUTH_USER_MODEL = "accounts.User"
-
-ACCOUNT_USER_MODEL_USERNAME_FIELD = None
-ACCOUNT_USERNAME_REQUIRED = False
-ACCOUNT_LOGIN_METHODS = {"email"}
-ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
-
 
 
 ROOT_URLCONF = "config.urls"
@@ -156,11 +145,20 @@ STATIC_URL = "static/"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+SITE_ID = 1
+
+ACCOUNT_LOGIN_METHODS = {"username", "email"}
+ACCOUNT_SIGNUP_FIELDS = ["email*", "username*", "password1*", "password2*"]
+
+REST_USE_JWT = True
+
 REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": [],
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ),
 }
 
-if DEBUG:
-    REST_FRAMEWORK["DEFAULT_AUTHENTICATION_CLASSES"].append(
-        "rest_framework.authentication.SessionAuthentication"
-    )
+# if DEBUG:
+#     REST_FRAMEWORK["DEFAULT_AUTHENTICATION_CLASSES"].append(
+#         "rest_framework.authentication.SessionAuthentication"
+#     )
