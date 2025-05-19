@@ -1,3 +1,4 @@
-from django.shortcuts import render
+from dj_rest_auth.registration.views import ConfirmEmailView
 
-# Create your views here.
+class CustomConfirmEmailView(ConfirmEmailView):
+    template_name = "account/email/email_confirm.html"

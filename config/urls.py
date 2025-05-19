@@ -21,10 +21,17 @@ from django.contrib import admin
 from django.urls import path, include
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView, TokenVerifyView
 
+from accounts.views import CustomConfirmEmailView
+
 urlpatterns = [
     path("admin/", admin.site.urls),
 
     path("api/v1/auth/", include("dj_rest_auth.urls")),
+    path(
+        "api/v1/auth/registration/account-confirm-email/<str:key>/",
+        CustomConfirmEmailView.as_view(),
+        name="account_confirm_email",
+    ),
     path("api/v1/auth/registration/", include("dj_rest_auth.registration.urls")),
     path("api/v1/auth/jwt/token/", TokenObtainPairView.as_view(), name="jwt-token"),
     path("api/v1/auth/jwt/refresh/", TokenRefreshView.as_view(), name="jwt-refresh"),
