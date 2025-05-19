@@ -18,10 +18,13 @@ Including another URLconf
 from debug_toolbar.toolbar import debug_toolbar_urls
 from django.conf import settings
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path("api/v1/", include("accounts.urls")),
+    path("api/v1/auth/", include("dj_rest_auth.urls")),  # login/logout/password reset
+    path("api/v1/auth/registration/", include("dj_rest_auth.registration.urls")),  # registration
 ]
 
 if settings.DEBUG:
