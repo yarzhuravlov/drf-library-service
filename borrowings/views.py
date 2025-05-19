@@ -7,6 +7,7 @@ from borrowings.serializers import (
     BorrowingListSerializer,
     BorrowingRetrieveSerializer,
 )
+from notifications.handlers import notify_new_borrowing
 
 
 class BorrowingViewSet(viewsets.ModelViewSet):
@@ -42,4 +43,6 @@ class BorrowingViewSet(viewsets.ModelViewSet):
         return BorrowingSerializer
 
     def perform_create(self, serializer):
-        return serializer.save(user=self.request.user)
+        borrowing = serializer.save(user=self.request.user)
+        notify_new_borrowing(borrowing)  # Відправка сповіщення
+        return borrowing

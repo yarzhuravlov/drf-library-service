@@ -1,0 +1,255 @@
+[
+  {
+    "model": "books.author",
+    "pk": 1,
+    "fields": {
+      "first_name": "Jane",
+      "last_name": "Austen"
+    }
+  },
+  {
+    "model": "books.author",
+    "pk": 2,
+    "fields": {
+      "first_name": "George",
+      "last_name": "Orwell"
+    }
+  },
+  {
+    "model": "books.author",
+    "pk": 3,
+    "fields": {
+      "first_name": "J.K.",
+      "last_name": "Rowling"
+    }
+  },
+  {
+    "model": "books.author",
+    "pk": 4,
+    "fields": {
+      "first_name": "Fyodor",
+      "last_name": "Dostoevsky"
+    }
+  },
+  {
+    "model": "books.author",
+    "pk": 5,
+    "fields": {
+      "first_name": "Ernest",
+      "last_name": "Hemingway"
+    }
+  },
+  {
+    "model": "books.book",
+    "pk": 1,
+    "fields": {
+      "title": "Pride and Prejudice",
+      "cover": "hard",
+      "inventory": 5,
+      "daily_fee": 10,
+      "authors": [1]
+    }
+  },
+  {
+    "model": "books.book",
+    "pk": 2,
+    "fields": {
+      "title": "1984",
+      "cover": "soft",
+      "inventory": 7,
+      "daily_fee": 12,
+      "authors": [2]
+    }
+  },
+  {
+    "model": "books.book",
+    "pk": 3,
+    "fields": {
+      "title": "Harry Potter and the Philosopher's Stone",
+      "cover": "hard",
+      "inventory": 10,
+      "daily_fee": 15,
+      "authors": [3]
+    }
+  },
+  {
+    "model": "books.book",
+    "pk": 4,
+    "fields": {
+      "title": "Crime and Punishment",
+      "cover": "hard",
+      "inventory": 3,
+      "daily_fee": 8,
+      "authors": [4]
+    }
+  },
+  {
+    "model": "books.book",
+    "pk": 5,
+    "fields": {
+      "title": "The Old Man and the Sea",
+      "cover": "soft",
+      "inventory": 6,
+      "daily_fee": 7,
+      "authors": [5]
+    }
+  },
+  {
+    "model": "auth.user",
+    "pk": 1,
+    "fields": {
+      "password": "pbkdf2_sha256$720000$W7IXkh1hLKxvSRhL9PtVdQ$bOcvq/2O9V2I6WYqzJDzlRcDwMZNgPpYEYIqMJ0bR8M=",
+      "last_login": null,
+      "is_superuser": true,
+      "username": "admin",
+      "first_name": "Admin",
+      "last_name": "User",
+      "email": "admin@example.com",
+      "is_staff": true,
+      "is_active": true,
+      "date_joined": "2025-05-15T10:00:00.000Z",
+      "groups": [],
+      "user_permissions": []
+    }
+  },
+  {
+    "model": "auth.user",
+    "pk": 2,
+    "fields": {
+      "password": "pbkdf2_sha256$720000$9Nj9v7MkJtIrXEZGPXOQcf$U51HPn0Y7vxPKGIgFIEcJEA+BhK0t5SG5Gf9HSdizDU=",
+      "last_login": null,
+      "is_superuser": false,
+      "username": "user1",
+      "first_name": "John",
+      "last_name": "Doe",
+      "email": "user1@example.com",
+      "is_staff": false,
+      "is_active": true,
+      "date_joined": "2025-05-15T10:10:00.000Z",
+      "groups": [],
+      "user_permissions": []
+    }
+  },
+  {
+    "model": "auth.user",
+    "pk": 3,
+    "fields": {
+      "password": "pbkdf2_sha256$720000$9Nj9v7MkJtIrXEZGPXOQcf$U51HPn0Y7vxPKGIgFIEcJEA+BhK0t5SG5Gf9HSdizDU=",
+      "last_login": null,
+      "is_superuser": false,
+      "username": "user2",
+      "first_name": "Jane",
+      "last_name": "Smith",
+      "email": "user2@example.com",
+      "is_staff": false,
+      "is_active": true,
+      "date_joined": "2025-05-15T10:20:00.000Z",
+      "groups": [],
+      "user_permissions": []
+    }
+  },
+  {
+    "model": "borrowings.borrowing",
+    "pk": 1,
+    "fields": {
+      "borrow_date": "2025-05-01",
+      "expected_return": "2025-05-15",
+      "actual_return": "2025-05-14",
+      "book": 1,
+      "user": 2
+    }
+  },
+  {
+    "model": "borrowings.borrowing",
+    "pk": 2,
+    "fields": {
+      "borrow_date": "2025-05-05",
+      "expected_return": "2025-05-20",
+      "actual_return": null,
+      "book": 2,
+      "user": 2
+    }
+  },
+  {
+    "model": "borrowings.borrowing",
+    "pk": 3,
+    "fields": {
+      "borrow_date": "2025-05-10",
+      "expected_return": "2025-05-24",
+      "actual_return": null,
+      "book": 3,
+      "user": 3
+    }
+  },
+  {
+    "model": "borrowings.borrowing",
+    "pk": 4,
+    "fields": {
+      "borrow_date": "2025-04-25",
+      "expected_return": "2025-05-09",
+      "actual_return": "2025-05-12",
+      "book": 4,
+      "user": 3
+    }
+  },
+  {
+    "model": "payments.payment",
+    "pk": 1,
+    "fields": {
+      "borrowing": 1,
+      "session_url": "https://checkout.stripe.com/c/pay/cs_test_a1b2c3d4e5f6g7h8i9j0",
+      "session_id": "cs_test_a1b2c3d4e5f6g7h8i9j0",
+      "money_to_pay": 140,
+      "status": "paid",
+      "type": "payment"
+    }
+  },
+  {
+    "model": "payments.payment",
+    "pk": 2,
+    "fields": {
+      "borrowing": 2,
+      "session_url": "https://checkout.stripe.com/c/pay/cs_test_a1b2c3d4e5f6g7h8i9j1",
+      "session_id": "cs_test_a1b2c3d4e5f6g7h8i9j1",
+      "money_to_pay": 180,
+      "status": "pending",
+      "type": "payment"
+    }
+  },
+  {
+    "model": "payments.payment",
+    "pk": 3,
+    "fields": {
+      "borrowing": 3,
+      "session_url": "https://checkout.stripe.com/c/pay/cs_test_a1b2c3d4e5f6g7h8i9j2",
+      "session_id": "cs_test_a1b2c3d4e5f6g7h8i9j2",
+      "money_to_pay": 210,
+      "status": "pending",
+      "type": "payment"
+    }
+  },
+  {
+    "model": "payments.payment",
+    "pk": 4,
+    "fields": {
+      "borrowing": 4,
+      "session_url": "https://checkout.stripe.com/c/pay/cs_test_a1b2c3d4e5f6g7h8i9j3",
+      "session_id": "cs_test_a1b2c3d4e5f6g7h8i9j3",
+      "money_to_pay": 136,
+      "status": "paid",
+      "type": "payment"
+    }
+  },
+  {
+    "model": "payments.payment",
+    "pk": 5,
+    "fields": {
+      "borrowing": 4,
+      "session_url": "https://checkout.stripe.com/c/pay/cs_test_a1b2c3d4e5f6g7h8i9j4",
+      "session_id": "cs_test_a1b2c3d4e5f6g7h8i9j4",
+      "money_to_pay": 48,
+      "status": "pending",
+      "type": "fine"
+    }
+  }
+]
