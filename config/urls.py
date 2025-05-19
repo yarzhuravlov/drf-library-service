@@ -22,11 +22,14 @@ from django.urls import path, include
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView, TokenVerifyView
 
+from accounts.views import activate_user
+
 urlpatterns = [
     path("admin/", admin.site.urls),
 
     path("api/v1/auth/", include("djoser.urls")),
     path("api/v1/auth/", include("djoser.urls.jwt")),
+    path("activate/<uid>/<token>/", activate_user, name="activate-user"),
 
     path("api/v1/books/", include("books.urls")),
     path("api/v1/", include("borrowings.urls")),
