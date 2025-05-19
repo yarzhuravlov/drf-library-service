@@ -20,3 +20,8 @@ class Payment(models.Model):
     session_url = models.URLField()
     session_id = models.CharField(max_length=255)
     money_to_pay = models.PositiveBigIntegerField()
+    status = models.CharField(max_length=10, choices=Statuses.choices)
+    type = models.CharField(max_length=10, choices=Types.choices)
+
+    def __str__(self):
+        return f"Payment by {self.borrowing.user.email}."
