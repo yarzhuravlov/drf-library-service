@@ -2,6 +2,11 @@ import json
 import logging
 import redis
 from django.conf import settings
+from django.contrib.auth import get_user_model
+
+from notifications.models import TelegramUser
+
+User = get_user_model()
 
 LOG_LEVEL_NOTIFICATIONS = getattr(settings, "LOG_LEVEL_NOTIFICATIONS", "INFO")
 
@@ -126,6 +131,18 @@ def send_admin_notification(message, use_celery=True):
         return False
 
 
+def send_notification_to_all_admin_users(message: str, use_celery=True):
+    admin_telegram_ids = list(
+        TelegramUser.objects.filter(user__is_staff=True).values_list(
+            "telegram_id",
+            flat=True,
+        )
+    )
+    return send_telegram_notification_django(
+        admin_telegram_ids, message, use_celery
+    )
+
+
 def send_user_notification(user_telegram_id, message, use_celery=True):
     """
     Надсилає повідомлення конкретному користувачу
@@ -150,3 +167,9 @@ def send_user_notification(user_telegram_id, message, use_celery=True):
     except Exception as e:
         logger.error(f"Помилка при відправці повідомлення користувачу: {e}")
         return False
+
+
+def send_notification_to_user(user: User, message: str, use_celery=True):
+    user_id = TelegramUser.objects.get(user=user).telegram_id
+
+    return send_notification_to_user([user_id], message, use_celery)
