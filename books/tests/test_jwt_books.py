@@ -7,7 +7,6 @@ from books.models import Author, Book
 
 User = get_user_model()
 
-
 def get_tokens_for_user(user):
     refresh = RefreshToken.for_user(user)
     return {
@@ -15,14 +14,19 @@ def get_tokens_for_user(user):
         "access": str(refresh.access_token),
     }
 
-
 class JWTBookPermissionsTest(APITestCase):
     def setUp(self):
         self.admin = User.objects.create_user(
-            email="admin@example.com", password="admin123", is_staff=True
+            username="adminuser",
+            email="admin@example.com",
+            password="admin123",
+            is_staff=True,
         )
         self.user = User.objects.create_user(
-            email="user@example.com", password="user123", is_staff=False
+            username="normaluser",
+            email="user@example.com",
+            password="user123",
+            is_staff=False,
         )
         self.author = Author.objects.create(first_name="Mark", last_name="Twain")
 
@@ -31,7 +35,7 @@ class JWTBookPermissionsTest(APITestCase):
             "title": "Tom Sawyer",
             "author_ids": [self.author.id],
             "inventory": 5,
-            "daily_fee": 2.5,
+            "daily_fee": 3,
             "cover": "hard"
         }
 
@@ -67,7 +71,7 @@ class JWTBookPermissionsTest(APITestCase):
         book = Book.objects.create(
             title="Old Title",
             inventory=3,
-            daily_fee=1.5,
+            daily_fee=2,
             cover="soft"
         )
         book.authors.add(self.author)
