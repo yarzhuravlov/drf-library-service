@@ -23,7 +23,6 @@ def get_redis_connection():
     redis_db = getattr(settings, "REDIS_DB", 0)
     redis_password = getattr(settings, "REDIS_PASSWORD", None)
 
-    # Параметри підключення
     connection_params = {
         "host": redis_host,
         "port": redis_port,
@@ -97,18 +96,16 @@ def send_telegram_notification_django(telegram_ids, text, use_celery=True):
         return False
 
 
-# Спеціалізовані функції для різних типів повідомлень
-
-
-def notify_new_borrowing(borrowing):
+def send_admin_notification(message, use_celery=True):
     """
-    Відправляє сповіщення про нове позичання книги
+    Надсилає повідомлення адміністраторам системи
 
     Args:
-        borrowing: Об'єкт Borrowing з інформацією про позичання
+        message (str): Текст повідомлення
+        use_celery (bool): Використовувати Celery (True) або безпосередньо Redis (False)
 
     Returns:
-        bool: Результат надсилання повідомлення
+        bool: True якщо повідомлення відправлено, False в іншому випадку
     """
     try:
         # Отримуємо ID адміністраторів з налаштувань
@@ -118,70 +115,38 @@ def notify_new_borrowing(borrowing):
             logger.error("TELEGRAM_ADMIN_CHAT_ID не налаштовано в settings")
             return False
 
-        # Формуємо HTML-повідомлення
-        message = (
-            f"🔔 <b>Нове замовлення книги</b>\n\n"
-            f"📚 Книга: <i>{borrowing.book.title}</i>\n"
-            f"👤 Користувач: {borrowing.user.email}\n"
-            f"📅 Дата позичання: {borrowing.borrow_date}\n"
-            f"📅 Очікуване повернення: {borrowing.expected_return}\n"
-            f"💰 Щоденна плата: ${borrowing.book.daily_fee}"
+        # Надсилаємо повідомлення
+        return send_telegram_notification_django(
+            [admin_chat_id], message, use_celery
         )
-
-        # Надсилаємо через стандартну функцію
-        return send_telegram_notification_django([admin_chat_id], message)
     except Exception as e:
         logger.error(
-            f"Помилка при формуванні повідомлення про нове позичання: {e}"
+            f"Помилка при відправці повідомлення адміністраторам: {e}"
         )
         return False
 
 
-def notify_book_returned(borrowing):
+def send_user_notification(user_telegram_id, message, use_celery=True):
     """
-    Відправляє сповіщення про повернення книги
+    Надсилає повідомлення конкретному користувачу
 
     Args:
-        borrowing: Об'єкт Borrowing з інформацією про позичання
+        user_telegram_id (int): ID користувача в Telegram
+        message (str): Текст повідомлення
+        use_celery (bool): Використовувати Celery (True) або безпосередньо Redis (False)
 
     Returns:
-        bool: Результат надсилання повідомлення
+        bool: True якщо повідомлення відправлено, False в іншому випадку
     """
     try:
-        # Отримуємо ID адміністраторів з налаштувань
-        admin_chat_id = getattr(settings, "TELEGRAM_ADMIN_CHAT_ID", None)
-
-        if not admin_chat_id:
-            logger.error("TELEGRAM_ADMIN_CHAT_ID не налаштовано в settings")
+        if not user_telegram_id:
+            logger.error("ID користувача в Telegram не вказано")
             return False
 
-        # Обчислюємо кількість днів користування
-        days_used = (borrowing.actual_return - borrowing.borrow_date).days
-
-        # Формуємо HTML-повідомлення
-        message = (
-            f"📚 <b>Книгу повернуто</b>\n\n"
-            f"📚 Книга: <i>{borrowing.book.title}</i>\n"
-            f"👤 Користувач: {borrowing.user.email}\n"
-            f"📅 Дата позичання: {borrowing.borrow_date}\n"
-            f"📅 Фактичне повернення: {borrowing.actual_return}\n"
-            f"⏱️ Тривалість: {days_used} днів"
+        # Надсилаємо повідомлення
+        return send_telegram_notification_django(
+            [user_telegram_id], message, use_celery
         )
-
-        # Перевіряємо чи є прострочення
-        if borrowing.actual_return > borrowing.expected_return:
-            overdue_days = (
-                borrowing.actual_return - borrowing.expected_return
-            ).days
-            message += (
-                f"\n\n⚠️ <b>Увага! Прострочення на {overdue_days} днів</b>\n"
-                f"💰 Очікується штраф!"
-            )
-
-        # Надсилаємо через стандартну функцію
-        return send_telegram_notification_django([admin_chat_id], message)
     except Exception as e:
-        logger.error(
-            f"Помилка при формуванні повідомлення про повернення книги: {e}"
-        )
+        logger.error(f"Помилка при відправці повідомлення користувачу: {e}")
         return False

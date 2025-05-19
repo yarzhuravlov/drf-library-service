@@ -7,7 +7,7 @@ from notifications.handlers import send_notification_redis
 logger = logging.getLogger(__name__)
 
 
-@shared_task
+@shared_task(name="notifications.tasks.send_notification_celery")
 def send_notification_celery(telegram_ids, text):
     """
     Celery-задача для асинхронної відправки сповіщень
