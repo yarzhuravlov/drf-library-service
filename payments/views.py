@@ -40,11 +40,17 @@ class PaymentViewSet(
     @action(
         detail=False,
         methods=["get"],
-        url_path="/success",
+        url_path="success",
         permission_classes=[AllowAny],
     )
-    def success(self):
-        session_id = self.request.GET["session_id"]
+    def success(self, request):
+        session_id = self.request.GET.get("session_id")
+
+        if not session_id:
+            return Response(
+                "session_id is required",
+                status.HTTP_400_BAD_REQUEST,
+            )
 
         payment = update_payment_by_session_id(session_id)
 
@@ -62,5 +68,5 @@ class PaymentViewSet(
         url_path="cancel",
         permission_classes=[AllowAny],
     )
-    def cancel(self):
+    def cancel(self, *args, **kwargs):
         return Response("Payment can be completed later")

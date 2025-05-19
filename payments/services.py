@@ -67,7 +67,11 @@ def create_payment(borrowing: Borrowing) -> Payment:
 
 
 def update_payment_by_session_id(session_id: str):
-    session = stripe.checkout.Session.get(session_id)
+    try:
+        session = stripe.checkout.Session.retrieve(session_id)
+    except stripe._error.InvalidRequestError:
+        return None
+
     if session.payment_status == "paid":
         payment = Payment.objects.get(session_id=session_id)
         payment.status = Payment.Statuses.PAID
