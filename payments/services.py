@@ -64,3 +64,15 @@ def create_payment(borrowing: Borrowing) -> Payment:
         type=Payment.Types.PAYMENT,
     )
     return payment
+
+
+def update_payment_by_session_id(session_id: str):
+    session = stripe.checkout.Session.get(session_id)
+    if session.payment_status == "paid":
+        payment = Payment.objects.get(session_id=session_id)
+        payment.status = Payment.Statuses.PAID
+        payment.save()
+
+        return Payment
+
+    return None
