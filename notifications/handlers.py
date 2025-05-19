@@ -172,4 +172,4 @@ def send_user_notification(user_telegram_id, message, use_celery=True):
 def send_notification_to_user(user: User, message: str, use_celery=True):
     user_id = TelegramUser.objects.get(user=user).telegram_id
 
-    return send_notification_to_user([user_id], message, use_celery)
+    return send_user_notification(user_id, message, use_celery)
