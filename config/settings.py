@@ -168,15 +168,15 @@ DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 REST_USE_JWT = True
 
 REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": (
+    "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework_simplejwt.authentication.JWTAuthentication",
-    ),
+    ],
 }
 
-# if DEBUG:
-#     REST_FRAMEWORK["DEFAULT_AUTHENTICATION_CLASSES"].append(
-#         "rest_framework.authentication.SessionAuthentication"
-#     )
+if DEBUG:
+    REST_FRAMEWORK["DEFAULT_AUTHENTICATION_CLASSES"].append(
+        "rest_framework.authentication.SessionAuthentication"
+    )
 
 # ==============================================================================
 # НАЛАШТУВАННЯ REDIS
