@@ -2,7 +2,7 @@ import json
 import unittest
 from unittest.mock import patch, MagicMock
 
-from django.test import TestCase
+from django.test import TestCase, override_settings
 
 from notifications.handlers import (
     send_notification_redis,
@@ -49,6 +49,40 @@ class NotificationsHandlersTests(TestCase):
         text = "Тестове повідомлення"
         send_notification_celery(telegram_ids, text)
         mock_redis.assert_called_once_with(telegram_ids, text)
+
+    @override_settings(
+        REDIS_HOST="test_host",
+        REDIS_PORT=1234,
+        REDIS_DB=5,
+        REDIS_PASSWORD="test_pass",
+        NOTIFICATIONS_QUEUE="test_queue",
+    )
+    @patch("notifications.handlers.redis.Redis")
+    def test_redis_settings_from_django_settings(self, mock_redis_class):
+        """Тест, що перевіряє використання налаштувань django.conf.settings"""
+        # Підготовка
+        mock_redis_instance = MagicMock()
+        mock_redis_class.return_value = mock_redis_instance
+
+        telegram_ids = [123456789]
+        text = "Тест налаштувань"
+
+        # Виконання
+        send_notification_redis(telegram_ids, text)
+
+        # Перевірка, що redis.Redis викликано з правильними параметрами
+        mock_redis_class.assert_called_once_with(
+            host="test_host",
+            port=1234,
+            db=5,
+            password="test_pass",
+            decode_responses=True,
+        )
+
+        # Перевірка використання правильної назви черги з settings
+        args, _ = mock_redis_instance.rpush.call_args
+        queue_name, _ = args
+        self.assertEqual(queue_name, "test_queue")
 
 
 class DailyChecksTests(TestCase):

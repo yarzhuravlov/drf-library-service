@@ -2,13 +2,15 @@ import logging
 import asyncio
 import requests
 from datetime import datetime
+from django.conf import settings
 
-from .handlers import send_telegram_notification_django
-from .config import LOG_LEVEL
+from notifications.handlers import send_telegram_notification_django
 
 # Налаштування логування
 logging.basicConfig(
-    level=getattr(logging, LOG_LEVEL),
+    level=getattr(
+        logging, getattr(settings, "LOG_LEVEL_NOTIFICATIONS", "INFO")
+    ),
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
