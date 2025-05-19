@@ -10,10 +10,10 @@ class BookViewsTest(TestCase):
     def setUp(self):
         self.client = Client()
         self.admin = User.objects.create_user(
-            email="admin@example.com", password="admin123", is_staff=True
+            username="admin@example.com", password="admin123", is_staff=True
         )
         self.user = User.objects.create_user(
-            email="user@example.com", password="user123", is_staff=False
+            username="user@example.com", password="user123", is_staff=False
         )
         self.author = Author.objects.create(first_name="Mark", last_name="Twain")
 
@@ -23,7 +23,7 @@ class BookViewsTest(TestCase):
         self.assertEqual(response.status_code, 200)
 
     def test_admin_can_create_book(self):
-        self.client.login(email="admin@example.com", password="admin123")
+        self.client.login(username="admin@example.com", password="admin123")
         url = reverse("books:book-list")
         data = {
             "title": "Tom Sawyer",
@@ -40,7 +40,7 @@ class BookViewsTest(TestCase):
         self.assertEqual(response.status_code, 201)
 
     def test_user_cannot_create_book(self):
-        self.client.login(email="user@example.com", password="user123")
+        self.client.login(username="user@example.com", password="user123")
         url = reverse("books:book-list")
         data = {
             "title": "Tom Sawyer",
@@ -78,7 +78,7 @@ class BookViewsTest(TestCase):
             cover="soft"
         )
         book.authors.set([self.author])
-        self.client.login(email="admin@example.com", password="admin123")
+        self.client.login(username="admin@example.com", password="admin123")
         url = reverse("books:book-detail", args=[book.id])
         data = {
             "title": "New Title",
@@ -105,7 +105,7 @@ class BookViewsTest(TestCase):
             cover="soft"
         )
         book.authors.set([self.author])
-        self.client.login(email="user@example.com", password="user123")
+        self.client.login(username="user@example.com", password="user123")
         url = reverse("books:book-detail", args=[book.id])
         data = {
             "title": "New Title",
@@ -129,7 +129,7 @@ class BookViewsTest(TestCase):
             cover="hard"
         )
         book.authors.set([self.author])
-        self.client.login(email="admin@example.com", password="admin123")
+        self.client.login(username="admin@example.com", password="admin123")
         url = reverse("books:book-detail", args=[book.id])
         response = self.client.delete(url)
         self.assertEqual(response.status_code, 204)
@@ -143,7 +143,7 @@ class BookViewsTest(TestCase):
             cover="hard"
         )
         book.authors.set([self.author])
-        self.client.login(email="user@example.com", password="user123")
+        self.client.login(username="user@example.com", password="user123")
         url = reverse("books:book-detail", args=[book.id])
         response = self.client.delete(url)
         self.assertEqual(response.status_code, 403)

@@ -1,4 +1,3 @@
-import json
 from django.urls import reverse
 from rest_framework.test import APITestCase
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -7,6 +6,7 @@ from books.models import Author, Book
 
 User = get_user_model()
 
+
 def get_tokens_for_user(user):
     refresh = RefreshToken.for_user(user)
     return {
@@ -14,20 +14,20 @@ def get_tokens_for_user(user):
         "access": str(refresh.access_token),
     }
 
+
 class JWTBookPermissionsTest(APITestCase):
     def setUp(self):
         self.admin = User.objects.create_user(
-            username="adminuser",
-            email="admin@example.com",
+            username="admin@example.com",
             password="admin123",
             is_staff=True,
         )
         self.user = User.objects.create_user(
-            username="normaluser",
-            email="user@example.com",
+            username="user@example.com",
             password="user123",
             is_staff=False,
         )
+
         self.author = Author.objects.create(first_name="Mark", last_name="Twain")
 
         self.book_url = reverse("books:book-list")
@@ -42,29 +42,17 @@ class JWTBookPermissionsTest(APITestCase):
     def test_admin_can_create_book_with_jwt(self):
         tokens = get_tokens_for_user(self.admin)
         self.client.credentials(HTTP_AUTHORIZATION="Bearer " + tokens["access"])
-        response = self.client.post(
-            self.book_url,
-            data=json.dumps(self.book_data),
-            content_type="application/json"
-        )
+        response = self.client.post(self.book_url, data=self.book_data, format="json")
         self.assertEqual(response.status_code, 201)
 
     def test_user_cannot_create_book_with_jwt(self):
         tokens = get_tokens_for_user(self.user)
         self.client.credentials(HTTP_AUTHORIZATION="Bearer " + tokens["access"])
-        response = self.client.post(
-            self.book_url,
-            data=json.dumps(self.book_data),
-            content_type="application/json"
-        )
+        response = self.client.post(self.book_url, data=self.book_data, format="json")
         self.assertEqual(response.status_code, 403)
 
     def test_unauthenticated_cannot_create_book(self):
-        response = self.client.post(
-            self.book_url,
-            data=json.dumps(self.book_data),
-            content_type="application/json"
-        )
+        response = self.client.post(self.book_url, data=self.book_data, format="json")
         self.assertEqual(response.status_code, 401)
 
     def test_admin_can_update_book(self):
@@ -88,11 +76,7 @@ class JWTBookPermissionsTest(APITestCase):
             "cover": "hard"
         }
 
-        response = self.client.put(
-            url,
-            data=json.dumps(updated_data),
-            content_type="application/json"
-        )
+        response = self.client.put(url, data=updated_data, format="json")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["title"], "New Title")
 
