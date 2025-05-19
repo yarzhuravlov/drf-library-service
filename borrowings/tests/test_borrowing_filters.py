@@ -14,30 +14,33 @@ class BorrowingFiltersTests(TestCase):
 
         # Create users
         self.staff_user = get_user_model().objects.create_user(
+            username="admin",
             email="admin@example.com",
             password="adminpass",
             is_staff=True,
         )
 
         self.user1 = get_user_model().objects.create_user(
+            username="user",
             email="user1@example.com",
             password="userpass1",
         )
 
         self.user2 = get_user_model().objects.create_user(
+            username="user2",
             email="user2@example.com",
             password="userpass2",
         )
 
         # Create book and author
-        self.author = Author.objects.create(first_name="Test", last_name="Author")
+        self.authors = Author.objects.create(first_name="Test", last_name="Author")
         self.book = Book.objects.create(
             title="Sample Book",
-            author=self.author,
             cover=Book.Covers.HARD,
             inventory=10,
             daily_fee=5
         )
+        self.book.authors.set([self.authors])
 
         # Create borrowings
         self.borrowing_active = Borrowing.objects.create(
