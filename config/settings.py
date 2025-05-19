@@ -66,6 +66,8 @@ INSTALLED_APPS = [
     "telegram_bot",
 ]
 
+SITE_ID = 1
+
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "debug_toolbar.middleware.DebugToolbarMiddleware",
