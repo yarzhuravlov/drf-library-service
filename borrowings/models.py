@@ -9,7 +9,7 @@ User = get_user_model()
 class Borrowing(models.Model):
     borrow_date = models.DateField()
     expected_return = models.DateField()
-    actual_return = models.DateField()
+    actual_return = models.DateField(null=True, blank=True)
     book = models.ForeignKey(Book, on_delete=models.PROTECT)
     user = models.ForeignKey(User, on_delete=models.PROTECT)
 
