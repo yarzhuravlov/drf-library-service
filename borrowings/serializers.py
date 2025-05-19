@@ -37,8 +37,9 @@ class BorrowingRetrieveSerializer(BorrowingSerializer):
         model = Borrowing
         fields = (
             "id",
+            "book",
+            "user",
             "borrow_date",
             "expected_return",
             "actual_return",
-            "book",
         )

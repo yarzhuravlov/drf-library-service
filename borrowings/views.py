@@ -10,7 +10,7 @@ from borrowings.serializers import (
 
 
 class BorrowingViewSet(viewsets.ModelViewSet):
-    queryset = Borrowing.objects.all()
+    queryset = Borrowing.objects.select_related("book", "user").all()
     permission_classes = (IsAuthenticated,)
 
     def get_queryset(self):
