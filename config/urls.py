@@ -26,6 +26,7 @@ urlpatterns = [
     path("api/v1/", include("books.urls")),
     path("api/v1/auth/", include("dj_rest_auth.urls")),  # login/logout/password reset
     path("api/v1/auth/registration/", include("dj_rest_auth.registration.urls")),  # registration
+    path("api/v1/", include("payments.urls")),
 ]
 
 if settings.DEBUG:
