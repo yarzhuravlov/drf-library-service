@@ -21,19 +21,16 @@ if not TELEGRAM_BOT_TOKEN:
     logger.critical(
         "Не вдалося ініціалізувати бота: TELEGRAM_BOT_TOKEN не знайдено!"
     )
-    # У цьому випадку, можливо, варто не створювати бота взагалі
-    # або мати "dummy" бота, який не робить нічого, але не викликає помилок.
-    # Для простоти, залишимо як є, але в реальному воркері це треба обробити.
-    bot = None
+    raise ValueError(
+        "TELEGRAM_BOT_TOKEN не встановлено. Бот не може бути ініціалізований."
+    )
 else:
     bot = Bot(
         token=TELEGRAM_BOT_TOKEN,
         default=DefaultBotProperties(parse_mode=ParseMode.HTML),
     )
 
-dp = (
-    Dispatcher()
-)  # Dispatcher може бути не потрібен, якщо бот тільки відправляє
+dp = Dispatcher()
 
 
 async def send_message_to_user(telegram_id: int, text: str) -> bool:
@@ -113,7 +110,7 @@ async def shutdown_bot_session():
         logger.info("Сесію Telegram бота закрито.")
 
 
-# Блок if __name__ == "__main__" для тестування можна залишити або адаптувати
+# Блок if __name__ == "__main__" для тестування
 if __name__ == "__main__":
     # Приклад використання для тестування:
     async def main_test():
