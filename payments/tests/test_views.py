@@ -3,9 +3,11 @@ from django.test import TestCase
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient
+from unittest import mock
 
 from borrowings.models import Borrowing
 from payments.models import Payment
+from payments.services import update_payment_by_session_id
 from books.models import Book, Author
 
 
@@ -15,35 +17,38 @@ class PaymentViewSetTests(TestCase):
 
         # Create users
         self.staff_user = get_user_model().objects.create_user(
-            email="staff@example.com",
+            username="staff@example.com",
             password="testpassword",
             is_staff=True,
         )
 
         self.regular_user = get_user_model().objects.create_user(
-            email="user@example.com",
+            username="user@example.com",
             password="testpassword",
         )
 
         self.another_user = get_user_model().objects.create_user(
-            email="another@example.com",
+            username="another@example.com",
             password="testpassword",
         )
 
         # Create an author
-        self.author = Author.objects.create(
-            first_name="Test",
-            last_name="Author",
-        )
+        self.authors = [
+            Author.objects.create(
+                first_name="Test",
+                last_name="Author",
+            )
+        ]
 
         # Create a book
         self.book = Book.objects.create(
             title="Test Book",
-            author=self.author,
             cover=Book.Covers.HARD,
             inventory=5,
             daily_fee=10,
         )
+
+        self.book.authors.set(self.authors)
 
         # Create borrowings
         self.borrowing_user = Borrowing.objects.create(
@@ -91,6 +96,8 @@ class PaymentViewSetTests(TestCase):
             "payments:payment-detail",
             args=[self.payment_another.id],
         )
+        self.payment_success_url = reverse("payments:payment-success")
+        self.payment_cancel_url = reverse("payments:payment-cancel")
 
     def test_list_payments_unauthenticated(self):
         """Test that unauthenticated users cannot access the payments list"""
@@ -191,3 +198,47 @@ class PaymentViewSetTests(TestCase):
         self.assertEqual(
             response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED
         )
+
+    @mock.patch("payments.views.update_payment_by_session_id")
+    def test_success_with_valid_session_id(self, mock_update):
+        """Test success action with a valid session_id"""
+        mock_update.return_value = Payment
+
+        response = self.client.get(
+            f"{self.payment_success_url}?session_id=valid_session_id"
+        )
+
+        mock_update.assert_called_once_with("valid_session_id")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data, "Payment status changed to PAID")
+
+    @mock.patch("payments.views.update_payment_by_session_id")
+    def test_success_with_invalid_session_id(self, mock_update):
+        """Test success action with an invalid session_id"""
+        mock_update.return_value = None
+
+        response = self.client.get(
+            f"{self.payment_success_url}?session_id=invalid_session_id"
+        )
+
+        mock_update.assert_called_once_with("invalid_session_id")
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(
+            response.data, "Paid session with such session_id not found"
+        )
+
+    def test_success_without_session_id(self):
+        """Test success action without providing a session_id"""
+        response = self.client.get(self.payment_success_url)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data, "session_id is required")
+
+    def test_cancel(self):
+        """Test cancel action"""
+        response = self.client.get(self.payment_cancel_url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data, "Payment can be completed later")

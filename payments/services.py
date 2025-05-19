@@ -2,7 +2,9 @@ import os
 from datetime import timedelta
 
 import stripe
+from django.urls import reverse
 from django.utils import timezone
+from rest_framework.request import Request
 
 from borrowings.models import Borrowing
 from payments.models import Payment
@@ -23,6 +25,7 @@ def calc_borrowing_total_price(borrowing: Borrowing):
 def create_stripe_session(
     borrowing: Borrowing,
     borrowing_total_price: int,
+    request: Request,
 ) -> stripe.checkout.Session:
     session = stripe.checkout.Session.create(
         line_items=[
@@ -38,8 +41,13 @@ def create_stripe_session(
             }
         ],
         mode="payment",
-        success_url=success_url,
-        cancel_url=cancel_url,
+        success_url=request.build_absolute_uri(
+            reverse("payments:payment-success")
+        )
+        + "?session_id={CHECKOUT_SESSION_ID}",
+        cancel_url=request.build_absolute_uri(
+            reverse("payments:payment-cancel")
+        ),
         metadata={"borrowing_id": borrowing.id},
         expires_at=int(
             (
@@ -52,9 +60,9 @@ def create_stripe_session(
     return session
 
 
-def create_payment(borrowing: Borrowing) -> Payment:
+def create_payment(borrowing: Borrowing, request: Request) -> Payment:
     borrowing_total_price = calc_borrowing_total_price(borrowing)
-    session = create_stripe_session(borrowing, borrowing_total_price)
+    session = create_stripe_session(borrowing, borrowing_total_price, request)
 
     payment = Payment.objects.create(
         borrowing=borrowing,
@@ -64,3 +72,19 @@ def create_payment(borrowing: Borrowing) -> Payment:
         type=Payment.Types.PAYMENT,
     )
     return payment
+
+
+def update_payment_by_session_id(session_id: str):
+    try:
+        session = stripe.checkout.Session.retrieve(session_id)
+    except stripe._error.InvalidRequestError:
+        return None
+
+    if session.payment_status == "paid":
+        payment = Payment.objects.get(session_id=session_id)
+        payment.status = Payment.Statuses.PAID
+        payment.save()
+
+        return Payment
+
+    return None
