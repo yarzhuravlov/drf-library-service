@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     "books",
     "borrowings",
     "payments",
+    "notifications",
 ]
 
 MIDDLEWARE = [
@@ -79,7 +80,6 @@ ACCOUNT_USER_MODEL_USERNAME_FIELD = None
 ACCOUNT_USERNAME_REQUIRED = False
 ACCOUNT_LOGIN_METHODS = {"email"}
 ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
-
 
 
 ROOT_URLCONF = "config.urls"
