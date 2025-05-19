@@ -63,7 +63,6 @@ INSTALLED_APPS = [
     "borrowings",
     "payments",
     "notifications",
-    "telegram_bot",
 ]
 
 SITE_ID = 1
