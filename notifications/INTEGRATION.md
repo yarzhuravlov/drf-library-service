@@ -6,6 +6,13 @@
 
 ## Доступні функції для відправки сповіщень
 
+Start commands
+
+celery -A config worker -l INFO --pool=solo - Celery
+python -m telegram_bot.worker - worker who works with redis
+python manage.py runserser - server
+redis - localy
+
 Ми надаємо три основні функції для надсилання сповіщень:
 
 ### 1. Сповіщення для адміністраторів
