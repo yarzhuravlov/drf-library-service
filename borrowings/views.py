@@ -8,14 +8,20 @@ from borrowings.serializers import (
     BorrowingRetrieveSerializer,
 )
 
+
 class BorrowingViewSet(viewsets.ModelViewSet):
-    queryset = Borrowing.objects.all()
     permission_classes = (IsAuthenticated,)
 
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_staff:
+            return Borrowing.objects.all()
+        return Borrowing.objects.filter(user=user)
+
     def get_serializer_class(self):
-        if self.action == 'list':
+        if self.action == "list":
             return BorrowingListSerializer
-        if self.action == 'retrieve':
+        if self.action == "retrieve":
             return BorrowingRetrieveSerializer
         return BorrowingSerializer
 
