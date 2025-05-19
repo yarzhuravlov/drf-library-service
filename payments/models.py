@@ -22,3 +22,6 @@ class Payment(models.Model):
     money_to_pay = models.PositiveBigIntegerField()
     status = models.CharField(max_length=10, choices=Statuses.choices)
     type = models.CharField(max_length=10, choices=Types.choices)
+
+    def __str__(self):
+        return f"Payment by {self.borrowing.user.email}."
