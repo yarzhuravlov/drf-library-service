@@ -67,8 +67,9 @@ INSTALLED_APPS = [
     "borrowings",
     "payments",
     "notifications",
-    "telegram_bot",
 ]
+
+SITE_ID = 1
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -242,6 +243,9 @@ CELERY_TIMEZONE = TIME_ZONE
 # ==============================================================================
 NOTIFICATIONS_QUEUE = os.getenv("NOTIFICATIONS_QUEUE", "notifications")
 LOG_LEVEL_NOTIFICATIONS = os.getenv("LOG_LEVEL_NOTIFICATIONS", "INFO")
+
+# ID чату або групи для адміністраторів бібліотеки
+TELEGRAM_ADMIN_CHAT_ID = int(os.getenv("TELEGRAM_CHAT_ID", "368222740"))
 
 # ==============================================================================
 # НАЛАШТУВАННЯ ТЕЛЕГРАМ БОТА (Telegram Bot)

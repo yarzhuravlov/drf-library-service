@@ -19,6 +19,7 @@ from debug_toolbar.toolbar import debug_toolbar_urls
 from django.conf import settings
 from django.contrib import admin
 from django.urls import path, include
+
 from drf_spectacular.views import (
     SpectacularAPIView,
     SpectacularSwaggerView,
@@ -38,6 +39,7 @@ urlpatterns = [
     path("api/v1/books/", include("books.urls")),
     path("api/v1/", include("borrowings.urls")),
     path("api/v1/", include("payments.urls")),
+    path("api/v1/", include("notifications.urls")),
 
     path(
         "api/schema/",
