@@ -4,7 +4,6 @@ import httpx
 
 logger = logging.getLogger(__name__)
 
-# Constants
 API_BASE_URL = os.getenv("API_BASE_URL")
 
 
@@ -67,7 +66,7 @@ async def get_user_borrowings(user_id):
     Returns:
         list: List of dictionaries with borrowing data or empty list
     """
-    url = f"{API_BASE_URL}borrowings/"
+    url = f"{API_BASE_URL}borrowings/?user_id={user_id}"
     headers = inject_content_type_header(inject_service_auth_headers(user_id))
     try:
         async with httpx.AsyncClient() as client:
@@ -98,9 +97,7 @@ async def borrow_book(access_token, book_id):
     """
     from datetime import date, timedelta
 
-    # Current date for borrowing
     today = date.today()
-    # Expected return date (default 14 days)
     expected_return = today + timedelta(days=14)
 
     url = f"{API_BASE_URL}borrowings/"
@@ -170,7 +167,6 @@ async def get_books(access_token, search_query=None):
             response.raise_for_status()
             data = response.json()
 
-            # Check different response structure variants
             if isinstance(data, dict) and "results" in data:
                 return data["results"]
             if isinstance(data, list):
@@ -244,7 +240,6 @@ async def register_telegram_user(email, password, telegram_id):
                 timeout=10.0,
             )
 
-            # If successful request
             if response.status_code == 200:
                 data = response.json()
                 if "access" in data:
@@ -254,7 +249,6 @@ async def register_telegram_user(email, password, telegram_id):
                     "Received incomplete authorization data from server",
                 )
 
-            # Try to parse error
             try:
                 error_data = response.json()
                 if isinstance(error_data, dict):

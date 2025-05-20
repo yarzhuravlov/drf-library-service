@@ -57,10 +57,13 @@ async def profile(message: types.Message, state: FSMContext):
         if user_id and not data.get("user_id"):
             await state.update_data(user_id=user_id)
 
-        # Get verification status
-        verification_status = (
-            "✅ Verified" if user.get("is_verified") else "❌ Not verified"
-        )
+        email = user.get("email", "")
+        if email == "admin@admin.com":
+            verification_status = "✅ Admin"
+        else:
+            verification_status = (
+                "✅ Verified" if user.get("is_verified") else "❌ Not verified"
+            )
 
         first_name = user.get("first_name", "")
         last_name = user.get("last_name", "")
@@ -108,10 +111,10 @@ async def show_borrowings(callback: types.CallbackQuery, state: FSMContext):
             await callback.message.answer("You don't have any active rentals.")
             return
 
-        # Create a list to store the lines
         borrowing_lines = []
 
-        # Process each rental
+        builder = InlineKeyboardBuilder()
+
         for b in borrowings:
             book_title = await get_book_title(b.get("book"), state)
             borrowing_text = (
@@ -122,14 +125,32 @@ async def show_borrowings(callback: types.CallbackQuery, state: FSMContext):
             )
             borrowing_lines.append(borrowing_text)
 
+        builder.button(
+            text="⬅️ Back to Profile", callback_data="back_to_profile"
+        )
+
+        builder.adjust(1)
+
         text = "\n\n".join(borrowing_lines)
 
+        info_text = (
+            "ℹ️ <b>Note:</b> To return a book, please visit the library "
+            "or contact the administrator. Online return via bot is "
+            "currently not available."
+        )
+
         await callback.message.answer(
-            f"📋 <b>Your active rentals:</b>\n\n{text}"
+            f"📋 <b>Your active rentals:</b>\n\n{text}\n\n{info_text}",
+            reply_markup=builder.as_markup(),
         )
     except Exception as e:
         logger.error(f"Borrowings error: {e}")
         await callback.message.answer("Error retrieving rentals.")
+
+
+@router.callback_query(F.data == "back_to_profile")
+async def back_to_profile(callback: types.CallbackQuery, state: FSMContext):
+    await profile(callback.message, state)
 
 
 @router.callback_query(F.data == "show_payments")
@@ -167,7 +188,6 @@ async def show_payments(callback: types.CallbackQuery, state: FSMContext):
                     }
                     return status_map.get(status, f"❓ {status}")
 
-                # Function to get payment type with emoji
                 def get_type_emoji(payment_type):
                     type_map = {
                         "PAYMENT": "💵 Rental fee",
