@@ -25,12 +25,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = (
-    "django-insecure-lah*ka-k_1sfu4%u)=f1po_p2_uur77ylab3u3lk7my+d+1-=d"
+SECRET_KEY = os.environ.get(
+    "SECRET_KEY",
+    "django-insecure-lah*ka-k_1sfu4%u)=f1po_p2_uur77ylab3u3lk7my+d+1-=d",
 )
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get("DEBUG") == "True"
 
 AUTH_USER_MODEL = "accounts.User"
 
@@ -106,12 +107,24 @@ WSGI_APPLICATION = "config.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+if not DEBUG:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.environ.get("POSTGRES_DB"),
+            "USER": os.environ.get("POSTGRES_USER"),
+            "PASSWORD": os.environ.get("POSTGRES_PASSWORD"),
+            "HOST": os.environ.get("POSTGRES_HOST"),
+            "PORT": os.environ.get("POSTGRES_PORT"),
+        }
     }
-}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
+    }
 
 
 # Password validation
@@ -149,6 +162,10 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = "static/"
+STATIC_ROOT = BASE_DIR / "static"
+
+MEDIA_ROOT = BASE_DIR / "media"
+MEDIA_URL = "/media/"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -162,6 +179,7 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "base.authentication.ServiceWithUserAuthentication",
     ],
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
@@ -217,19 +235,17 @@ if DEBUG:
         "rest_framework.authentication.SessionAuthentication"
     )
 
-# ==============================================================================
-# НАЛАШТУВАННЯ REDIS
-# ==============================================================================
+# ============================================================================
+# REDIS SETTINGS
+# ============================================================================
 REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
 REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
 REDIS_DB = int(os.getenv("REDIS_DB", 0))
-REDIS_PASSWORD = os.getenv(
-    "REDIS_PASSWORD", None
-)  # None якщо пароль відсутній
+REDIS_PASSWORD = os.getenv("REDIS_PASSWORD", None)  # None if no password
 
-# ==============================================================================
-# НАЛАШТУВАННЯ CELERY
-# ==============================================================================
+# ============================================================================
+# CELERY SETTINGS
+# ============================================================================
 CELERY_BROKER_URL = os.getenv(
     "CELERY_BROKER_URL",
     f'redis://{":" + REDIS_PASSWORD + "@" if REDIS_PASSWORD else ""}{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}',  # noqa: E501
@@ -241,21 +257,28 @@ CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = TIME_ZONE
 # CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 
-# ==============================================================================
-# НАЛАШТУВАННЯ СПОВІЩЕНЬ (Notifications App)
-# ==============================================================================
+# ============================================================================
+# NOTIFICATIONS APP SETTINGS
+# ============================================================================
 NOTIFICATIONS_QUEUE = os.getenv("NOTIFICATIONS_QUEUE", "notifications")
 LOG_LEVEL_NOTIFICATIONS = os.getenv("LOG_LEVEL_NOTIFICATIONS", "INFO")
 
-# ID чату або групи для адміністраторів бібліотеки
+# Chat or group ID for library administrators
 TELEGRAM_ADMIN_CHAT_ID = int(os.getenv("TELEGRAM_CHAT_ID", "368222740"))
 
-# ==============================================================================
-# НАЛАШТУВАННЯ ТЕЛЕГРАМ БОТА (Telegram Bot)
-# ==============================================================================
+# ============================================================================
+# TELEGRAM BOT SETTINGS
+# ============================================================================
 TELEGRAM_BOT_TOKEN = (
     os.getenv("TELEGRAM_BOT_TOKEN")
     or os.getenv("BOT_TOKEN")
     or os.getenv("TELEGRAM_TOKEN")
 )
 LOG_LEVEL_TELEGRAM_BOT = os.getenv("LOG_LEVEL_TELEGRAM_BOT", "INFO")
+
+SERVICE_SECRETS = []
+
+if TELEGRAM_BOT_SERVICE_SECRET := os.environ.get(
+    "TELEGRAM_BOT_SERVICE_SECRET"
+):
+    SERVICE_SECRETS.append(TELEGRAM_BOT_SERVICE_SECRET)
