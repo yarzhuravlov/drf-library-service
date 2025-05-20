@@ -1,6 +1,9 @@
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.db import models
 
+from base.models import TimestampedBaseModel
+
+
 class UserManager(BaseUserManager):
     use_in_migrations = True
 
@@ -30,9 +33,13 @@ class UserManager(BaseUserManager):
         return self._create_user(email, password, **extra_fields)
 
 
-class User(AbstractUser):
+class User(TimestampedBaseModel, AbstractUser):
     username = None
     email = models.EmailField("email address", unique=True)
+    date_of_birth = models.DateField(
+        null=True, blank=True, verbose_name="Date of birth",
+        help_text="User's birth date (YYYY-MM-DD)",
+    )
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
