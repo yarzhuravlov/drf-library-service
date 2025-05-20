@@ -179,7 +179,10 @@ DJOSER = {
     "SEND_CONFIRMATION_EMAIL": True,
     "ACTIVATION_URL": "activate/{uid}/{token}/",
     "PASSWORD_RESET_CONFIRM_URL": "password/reset/confirm/{uid}/{token}/",
-    "SERIALIZERS": {},
+    "SERIALIZERS": {
+        "user": "accounts.serializers.UserSerializer",
+        "current_user": "accounts.serializers.UserSerializer",
+    },
     "DOMAIN": "127.0.0.1:8000",
     "SITE_NAME": "ReadRiot",
     "EMAIL": {
