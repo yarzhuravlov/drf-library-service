@@ -1,7 +1,6 @@
-from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from borrowings.views import BorrowingViewSet
 
+from borrowings.views import BorrowingViewSet
 
 app_name = "borrowings"
 
