@@ -260,7 +260,10 @@ DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL")
 
 cors_origins = os.environ.get("CORS_ALLOWED_ORIGINS")
 if cors_origins:
-    CORS_ALLOWED_ORIGINS = [origin.strip() for origin in cors_origins.split(",")]
+    CORS_ALLOWED_ORIGINS = [
+        origin.strip() 
+        for origin in cors_origins.split(",")
+    ]
 else:
     CORS_ALLOWED_ORIGINS = []
 
