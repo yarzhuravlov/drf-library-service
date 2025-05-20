@@ -16,6 +16,10 @@ app.conf.beat_schedule = {
         "task": "payments.tasks.check_expired_sessions",
         "schedule": crontab(minute="*"),  # every minute
     },
+    "check-overdue-borrowings-every-day": {
+        "task": "borrowings.tasks.check_overdue_borrowings",
+        "schedule": crontab(hour=0, minute=0),  # every day at midnight
+    },
 }
 
 
