@@ -33,6 +33,7 @@ urlpatterns = [
 
     path("api/v1/auth/", include("djoser.urls")),
     path("api/v1/auth/", include("djoser.urls.jwt")),
+    path("api/v1/auth/", include("djoser.social.urls")),
     path('api/v1/auth/', include('accounts.urls')),
     path("activate/<uid>/<token>/", activate_user, name="activate-user"),
 
