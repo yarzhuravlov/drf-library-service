@@ -18,7 +18,9 @@ class BorrowingConcurrencyTests(TestCase):
             email="admin@example.com", password="adminpass", is_staff=True
         )
 
-        self.author = Author.objects.create(first_name="Test", last_name="Author")
+        self.author = Author.objects.create(
+            first_name="Test", last_name="Author"
+        )
         self.book = Book.objects.create(
             title="Sample Book",
             cover=Book.Covers.HARD,
@@ -48,4 +50,7 @@ class BorrowingConcurrencyTests(TestCase):
 
         self.assertEqual(response1.status_code, status.HTTP_200_OK)
         self.assertEqual(response2.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("already returned", response2.data.get("non_field_errors", [""])[0].lower())
+        self.assertIn(
+            "already returned",
+            response2.data.get("non_field_errors", [""])[0].lower(),
+        )

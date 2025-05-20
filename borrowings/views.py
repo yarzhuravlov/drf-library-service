@@ -8,7 +8,8 @@ from borrowings.models import Borrowing
 from borrowings.serializers import (
     BorrowingSerializer,
     BorrowingListSerializer,
-    BorrowingRetrieveSerializer, BorrowingReturnSerializer,
+    BorrowingRetrieveSerializer,
+    BorrowingReturnSerializer,
 )
 from payments.models import Payment
 
@@ -56,7 +57,7 @@ class BorrowingViewSet(viewsets.ModelViewSet):
         if not request.user.is_staff:
             return Response(
                 {"detail:" "Only admin can return borrowings."},
-                status=status.HTTP_403_FORBIDDEN
+                status=status.HTTP_403_FORBIDDEN,
             )
 
         borrowing = self.get_object()
@@ -69,13 +70,14 @@ class BorrowingViewSet(viewsets.ModelViewSet):
         user = self.request.user
 
         pending_exists = Payment.objects.filter(
-            borrowing__user=user,
-            status=Payment.Statuses.PENDING
+            borrowing__user=user, status=Payment.Statuses.PENDING
         ).exists()
 
         if pending_exists:
-            raise ValidationError({
-                "detail": "You have pending payments. Please settle them before borrowing another book."
-            })
+            raise ValidationError(
+                {
+                    "detail": "You have pending payments. Please settle them before borrowing another book."
+                }
+            )
 
         serializer.save(user=user)

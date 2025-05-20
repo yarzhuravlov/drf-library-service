@@ -9,6 +9,7 @@ from payments.models import Payment
 
 User = get_user_model()
 
+
 class BorrowingPendingPaymentTests(TestCase):
     def setUp(self):
         self.client = APIClient()
@@ -18,7 +19,9 @@ class BorrowingPendingPaymentTests(TestCase):
         self.user_no_pending_payment = User.objects.create_user(
             email="user_no_pending@example.com", password="userpass"
         )
-        self.author = Author.objects.create(first_name="Test", last_name="Author")
+        self.author = Author.objects.create(
+            first_name="Test", last_name="Author"
+        )
         self.book = Book.objects.create(
             title="Sample Book",
             cover=Book.Covers.HARD,
@@ -38,7 +41,7 @@ class BorrowingPendingPaymentTests(TestCase):
             borrowing=self.borrowing_for_pending,
             status=Payment.Statuses.PENDING,
             type=Payment.Types.PAYMENT,
-            money_to_pay=10.00
+            money_to_pay=10.00,
         )
 
         self.borrowing_list_url = reverse("borrowings:borrowing-list")
@@ -57,7 +60,7 @@ class BorrowingPendingPaymentTests(TestCase):
         self.assertIn("detail", response.data)
         self.assertEqual(
             response.data["detail"],
-            "You have pending payments. Please settle them before borrowing another book."
+            "You have pending payments. Please settle them before borrowing another book.",
         )
         self.book.refresh_from_db()
         self.assertEqual(self.book.inventory, 1)
@@ -67,7 +70,7 @@ class BorrowingPendingPaymentTests(TestCase):
         self.assertFalse(
             Payment.objects.filter(
                 borrowing__user=self.user_no_pending_payment,
-                status=Payment.Statuses.PENDING
+                status=Payment.Statuses.PENDING,
             ).exists()
         )
         prev_inventory = self.book.inventory
@@ -82,4 +85,3 @@ class BorrowingPendingPaymentTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.book.refresh_from_db()
         self.assertEqual(self.book.inventory, prev_inventory - 1)
-

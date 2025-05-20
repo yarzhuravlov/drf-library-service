@@ -24,7 +24,9 @@ class BorrowingReturnTests(TestCase):
             password="userpass",
         )
 
-        self.author = Author.objects.create(first_name="Test", last_name="Author")
+        self.author = Author.objects.create(
+            first_name="Test", last_name="Author"
+        )
         self.book = Book.objects.create(
             title="Sample Book",
             cover=Book.Covers.HARD,
@@ -42,8 +44,7 @@ class BorrowingReturnTests(TestCase):
         )
 
         self.return_url = reverse(
-            'borrowings:borrowing-return-borrowing',
-            args=[self.borrowing.id]
+            "borrowings:borrowing-return-borrowing", args=[self.borrowing.id]
         )
 
     def test_admin_can_return_borrowing(self):
@@ -73,5 +74,5 @@ class BorrowingReturnTests(TestCase):
         self.assertEqual(response2.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(
             response2.data["non_field_errors"][0],
-            'This borrowing is already returned.'
+            "This borrowing is already returned.",
         )
