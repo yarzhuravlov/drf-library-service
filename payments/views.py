@@ -36,10 +36,8 @@ def stripe_webhook(request):
             payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
         )
     except ValueError as e:
-        # Invalid payload
         return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
     except stripe.error.SignatureVerificationError as e:
-        # Invalid signature
         return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
 
     if event.type == 'checkout.session.completed':
@@ -107,11 +105,7 @@ class PaymentViewSet(
         responses={
             200: {"description": "Payment status changed to PAID"},
             400: {"description": "session_id is required"},
-            404: {
-                "description": (
-                    "Paid session with such session_id not found"
-                )
-            },
+            404: {"description": "Paid session with such session_id not found"},
         },
     )
     @action(
@@ -166,18 +160,14 @@ class PaymentViewSet(
         ),
         responses={
             201: PaymentSerializer,
-            400: {
-                "description": "Invalid borrowing ID or payment already exists"
-            },
+            400: {"description": "Invalid borrowing ID or payment exists"},
             404: {"description": "Borrowing not found"},
         },
     )
     @action(
         detail=False,
         methods=["post"],
-        url_path=(
-            "create-for-borrowing/(?P<borrowing_id>[^/.]+)"
-        ),
+        url_path="create-for-borrowing/(?P<borrowing_id>[^/.]+)",
     )
     def create_for_borrowing(self, request, borrowing_id=None):
         """Create a new payment for a borrowing."""
@@ -189,16 +179,10 @@ class PaymentViewSet(
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        if (
-            borrowing.user != request.user
-            and not request.user.is_staff
-        ):
+        if borrowing.user != request.user and not request.user.is_staff:
+            error_msg = "Not authorized to create payment for this borrowing"
             return Response(
-                {
-                    "detail": (
-                        "Not authorized to create payment for this borrowing"
-                    )
-                },
+                {"detail": error_msg},
                 status=status.HTTP_403_FORBIDDEN,
             )
 
@@ -208,25 +192,17 @@ class PaymentViewSet(
             type=Payment.Types.PAYMENT,
         ).first()
 
-        if (
-            existing_payment
-            and existing_payment.status == Payment.Statuses.PAID
-        ):
+        if existing_payment and existing_payment.status == Payment.Statuses.PAID:
+            error_msg = "Payment already completed for this borrowing"
             return Response(
-                {"detail": "Payment already completed for this borrowing"},
+                {"detail": error_msg},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        if (
-            existing_payment
-            and existing_payment.status == Payment.Statuses.PENDING
-        ):
+        if existing_payment and existing_payment.status == Payment.Statuses.PENDING:
+            error_msg = "Pending payment already exists for this borrowing"
             return Response(
-                {
-                    "detail": (
-                        "Pending payment already exists for this borrowing"
-                    )
-                },
+                {"detail": error_msg},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -267,12 +243,12 @@ class RenewPaymentView(generics.UpdateAPIView):
         payment = self.get_object()
 
         if payment.borrowing.user != request.user:
+            error_msg = "Not authorized to renew this payment."
             return Response(
-                {"detail": "Not authorized to renew this payment."},
+                {"detail": error_msg},
                 status=status.HTTP_403_FORBIDDEN
             )
 
         payment = renew_payment_session(payment, request)
         serializer = self.get_serializer(payment)
-
         return Response(serializer.data)
