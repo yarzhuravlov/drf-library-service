@@ -26,7 +26,7 @@ services:
   db:
     image: postgres:16-alpine
     volumes:
-      - pgdata_library_service
+      - pgdata_library_service:/var/lib/postgresql/data
     ports:
       - "5432:5432"
     env_file:
@@ -42,13 +42,13 @@ services:
     depends_on:
       - db
     volumes:
-      - pgadmin_data_library_service
+      - pgadmin_data_library_service:/var/lib/postgresql/data
     restart: always
 
   redis:
     image: redis:latest
     volumes:
-      - redis_data_library_service
+      - redis_data_library_service:/data
     restart:
       always
 

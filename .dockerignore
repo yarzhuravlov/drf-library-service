@@ -1,0 +1,9 @@
+.venv
+Dockerfile
+.dockerignore
+.vscode
+.flake8
+db.sqlite3
+media
+.github
+telegram_bot
