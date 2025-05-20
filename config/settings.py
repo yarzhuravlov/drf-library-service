@@ -61,6 +61,7 @@ INSTALLED_APPS = [
     "drf_spectacular",
     "drf_spectacular_sidecar",
     "djoser",
+    "social_django",
     # local
     "accounts",
     "books",
@@ -186,7 +187,11 @@ DJOSER = {
     "ACTIVATION_URL": "activate/{uid}/{token}/",
     "PASSWORD_RESET_CONFIRM_URL": "password/reset/confirm/{uid}/{token}/",
     "SOCIAL_AUTH_TOKEN_STRATEGY": "djoser.social.token.jwt.TokenStrategy",
-    "SOCIAL_AUTH_ALLOWED_REDIRECT_URIS": ["http://localhost:3000"],
+    "SOCIAL_AUTH_ALLOWED_REDIRECT_URIS": [
+        "http://localhost:3000",
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+    ],
     "SERIALIZERS": {
         "user": "accounts.serializers.UserSerializer",
         "current_user": "accounts.serializers.UserSerializer",
@@ -198,6 +203,21 @@ DJOSER = {
     },
     "EMAIL_FRONTEND_SITE_NAME": "ReadRiot",
 }
+
+AUTHENTICATION_BACKENDS = (
+    "social_core.backends.google.GoogleOAuth2",
+    "django.contrib.auth.backends.ModelBackend",
+)
+
+SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = os.environ.get("GOOGLE_CLIENT_ID")
+SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = os.environ.get("GOOGLE_SECRET")
+SOCIAL_AUTH_GOOGLE_OAUTH2_SCOPE = [
+    "https://www.googleapis.com/auth/userinfo.email",
+    "https://www.googleapis.com/auth/userinfo.profile",
+    "openid",
+]
+SOCIAL_AUTH_GOOGLE_OAUTH2_EXTRA_DATA = ["first_name", "last_name"]
+
 
 EMAIL_BACKEND = os.environ.get("EMAIL_BACKEND")
 EMAIL_HOST = os.environ.get("EMAIL_HOST")
