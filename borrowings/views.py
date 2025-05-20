@@ -1,5 +1,6 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
@@ -7,8 +8,10 @@ from borrowings.models import Borrowing
 from borrowings.serializers import (
     BorrowingSerializer,
     BorrowingListSerializer,
-    BorrowingRetrieveSerializer, BorrowingReturnSerializer,
+    BorrowingRetrieveSerializer,
+    BorrowingReturnSerializer,
 )
+from payments.models import Payment
 
 
 class BorrowingViewSet(viewsets.ModelViewSet):
@@ -54,7 +57,7 @@ class BorrowingViewSet(viewsets.ModelViewSet):
         if not request.user.is_staff:
             return Response(
                 {"detail:" "Only admin can return borrowings."},
-                status=status.HTTP_403_FORBIDDEN
+                status=status.HTTP_403_FORBIDDEN,
             )
 
         borrowing = self.get_object()
@@ -64,4 +67,17 @@ class BorrowingViewSet(viewsets.ModelViewSet):
         return Response({"detail": "Book returned successfully."})
 
     def perform_create(self, serializer):
-        return serializer.save(user=self.request.user)
+        user = self.request.user
+
+        pending_exists = Payment.objects.filter(
+            borrowing__user=user, status=Payment.Statuses.PENDING
+        ).exists()
+
+        if pending_exists:
+            raise ValidationError(
+                {
+                    "detail": "You have pending payments. Please settle them before borrowing another book."  # noqa: E501
+                }
+            )
+
+        serializer.save(user=user)
