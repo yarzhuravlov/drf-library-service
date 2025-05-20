@@ -193,8 +193,8 @@ EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD")
 DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL")
 
 SPECTACULAR_SETTINGS = {
-    "TITLE": "Airport Service API",
-    "DESCRIPTION": "Airport tickets reservation",
+    "TITLE": "Library Service API",
+    "DESCRIPTION": "API for borrowing book",
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
     "SWAGGER_UI_SETTINGS": {
