@@ -183,7 +183,6 @@ DJOSER = {
     "SITE_NAME": "ReadRiot",
 }
 
-# EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend" # console email
 EMAIL_BACKEND = os.environ.get("EMAIL_BACKEND")
 EMAIL_HOST = os.environ.get("EMAIL_HOST")
 EMAIL_PORT = int(os.environ.get("EMAIL_PORT"))
@@ -225,7 +224,7 @@ REDIS_PASSWORD = os.getenv(
 # ==============================================================================
 CELERY_BROKER_URL = os.getenv(
     "CELERY_BROKER_URL",
-    f'redis://{":" + REDIS_PASSWORD + "@" if REDIS_PASSWORD else ""}{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}',
+    f'redis://{":" + REDIS_PASSWORD + "@" if REDIS_PASSWORD else ""}{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}',  # noqa: E501
 )
 CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", CELERY_BROKER_URL)
 CELERY_ACCEPT_CONTENT = ["json"]
