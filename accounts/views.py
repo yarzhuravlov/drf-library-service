@@ -9,7 +9,8 @@ from rest_framework.response import Response
 @csrf_exempt
 def activate_user(request, uid, token):
     """
-    Activate user account by GET request using uid and token from the activation link.
+    Activate user account by GET request
+    using uid and token from the activation link.
     """
     if request.method == "GET":
         # Simulate a POST request to Djoser's activation endpoint
