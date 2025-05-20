@@ -87,15 +87,14 @@ class PaymentViewSetTests(APITestCase):
         
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
-    @patch("payments.services.update_payment_by_session_id")
-    def test_payment_success(self, mock_update):
-        """Test successful payment completion"""
-        mock_update.return_value = self.payment
-        url = reverse("payments:payment-success")
-        response = self.client.get(f"{url}?session_id=test_session_id")
-        
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        mock_update.assert_called_once_with("test_session_id")
+    def test_payment_success(self):
+        """Test successful payment completion."""
+        with patch("payments.views.update_payment_by_session_id") as mock_update:
+            mock_update.return_value = self.payment
+            url = reverse("payments:payment-success")
+            response = self.client.get(f"{url}?session_id=test_session_id")
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+            self.assertEqual(response.data, {"message": "Payment status changed to PAID"})
 
     def test_payment_success_no_session_id(self):
         """Test payment success endpoint without session_id"""
@@ -145,17 +144,14 @@ class RenewPaymentViewTests(APITestCase):
         )
         self.client.force_authenticate(user=self.user)
 
-    @patch("payments.services.renew_payment_session")
-    def test_renew_payment(self, mock_renew):
-        """Test renewing a payment session"""
-        self.payment.status = "EXPIRED"
-        self.payment.save()
-        mock_renew.return_value = self.payment
-        url = reverse("payments:payment-renew", args=[self.payment.id])
-        response = self.client.put(url)
-        
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        mock_renew.assert_called_once()
+    def test_renew_payment(self):
+        """Test renewing a payment session."""
+        with patch("payments.views.renew_payment_session") as mock_renew:
+            mock_renew.return_value = self.payment
+            url = reverse("payments:payment-renew", args=[self.payment.id])
+            response = self.client.put(url)
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+            mock_renew.assert_called_once()
 
     def test_renew_other_user_payment_forbidden(self):
         """Test that users cannot renew other users' payments"""

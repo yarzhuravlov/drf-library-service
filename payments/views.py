@@ -1,4 +1,3 @@
-
 from django.conf import settings
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from rest_framework import status, generics
@@ -210,11 +209,8 @@ class PaymentViewSet(
             )
 
         if borrowing.user != request.user and not request.user.is_staff:
-            error_msg = (
-                "Not authorized to create payment for this borrowing"
-            )
             return Response(
-                {"detail": error_msg},
+                {"detail": "Not authorized to create payment for this borrowing"},  # noqa: E501
                 status=status.HTTP_403_FORBIDDEN,
             )
 
@@ -225,20 +221,22 @@ class PaymentViewSet(
         ).first()
 
         if existing_payment and existing_payment.status == Payment.Statuses.PAID:  # noqa: E501
-            error_msg = (
-                "Payment already completed for this borrowing"
-            )
             return Response(
-                {"detail": error_msg},
+                {
+                    "detail": (
+                        "Payment already completed for this borrowing"
+                    )
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         if existing_payment and existing_payment.status == Payment.Statuses.PENDING:  # noqa: E501
-            error_msg = (
-                "Pending payment already exists for this borrowing"
-            )
             return Response(
-                {"detail": error_msg},
+                {
+                    "detail": (
+                        "Pending payment already exists for this borrowing"
+                    )
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -250,9 +248,8 @@ class PaymentViewSet(
                 status=status.HTTP_201_CREATED
             )
         except Exception as e:
-            error_msg = str(e)
             return Response(
-                {"detail": error_msg},
+                {"detail": str(e)},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -284,17 +281,12 @@ class RenewPaymentView(generics.UpdateAPIView):
         payment = self.get_object()
 
         if payment.borrowing.user != request.user:
-            error_msg = "Not authorized to renew this payment."
             return Response(
-
                 {"detail": "Not authorized to renew this payment."},
-
                 status=status.HTTP_403_FORBIDDEN,
             )
 
         payment = renew_payment_session(payment, request)
         serializer = self.get_serializer(payment)
 
-        return Response(
-            serializer.data
-        )
+        return Response(serializer.data)

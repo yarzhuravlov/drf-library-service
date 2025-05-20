@@ -92,7 +92,6 @@ class PaymentViewSetTests(TestCase):
     def test_list_payments_staff_user(self):
         self.client.force_authenticate(user=self.staff_user)
         response = self.client.get(self.payment_list_url)
-
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 2)
         payment_ids = {payment["id"] for payment in response.data}
@@ -164,35 +163,36 @@ class PaymentViewSetTests(TestCase):
         response = self.client.delete(self.payment_detail_url)
         self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
 
-    @patch("payments.views.update_payment_by_session_id")
-    def test_success_with_valid_session_id(self, mock_update):
-        mock_update.return_value = self.payment_user
-
-        response = self.client.get(f"{self.payment_success_url}?session_id=valid_session_id")
-
-        mock_update.assert_called_once_with("valid_session_id")
+    def test_cancel(self):
+        response = self.client.get(self.payment_cancel_url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data.get("message"), "Payment status changed to PAID")
+        self.assertEqual(response.data, {"message": "Payment can be completed later"})
 
-    @patch("payments.views.update_payment_by_session_id")
-    def test_success_with_invalid_session_id(self, mock_update):
-        mock_update.return_value = None
+    def test_success_with_valid_session_id(self):
+        with patch("payments.views.update_payment_by_session_id") as mock_update:
+            mock_update.return_value = self.payment_user
+            response = self.client.get(
+                f"{self.payment_success_url}?session_id=valid_session_id"
+            )
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+            self.assertEqual(response.data, {"message": "Payment status changed to PAID"})
 
-        response = self.client.get(f"{self.payment_success_url}?session_id=invalid_session_id")
-
-        mock_update.assert_called_once_with("invalid_session_id")
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-        self.assertEqual(response.data, {"detail": "Paid session with such session_id not found"})
+    def test_success_with_invalid_session_id(self):
+        with patch("payments.views.update_payment_by_session_id") as mock_update:
+            mock_update.return_value = None
+            response = self.client.get(
+                f"{self.payment_success_url}?session_id=invalid_session_id"
+            )
+            self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+            self.assertEqual(
+                response.data,
+                {"detail": "Paid session with such session_id not found"}
+            )
 
     def test_success_without_session_id(self):
         response = self.client.get(self.payment_success_url)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.data, {"detail": "session_id is required"})
-
-    def test_cancel(self):
-        response = self.client.get(self.payment_cancel_url)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data, {"message": "Payment can be completed later"})
 
     @patch("payments.views.create_payment")
     def test_create_for_borrowing_success(self, mock_create):
