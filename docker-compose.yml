@@ -11,6 +11,42 @@ services:
       - db
     restart: always
 
+  celery:
+    build:
+      context: .
+      dockerfile: telegram_bot/Dockerfile
+    command: celery -A config worker -l INFO
+    env_file:
+      - .env
+    depends_on:
+      - app
+      - redis
+    restart: always
+
+  telegram-bot:
+    build:
+      context: .
+      dockerfile: telegram_bot/Dockerfile
+    command: python -m telegram_bot.main
+    env_file:
+      - .env
+    depends_on:
+      - app
+      - redis
+    restart: always
+
+  telegram-worker:
+    build:
+      context: .
+      dockerfile: telegram_bot/Dockerfile
+    command: python -m telegram_bot.worker
+    env_file:
+      - .env
+    depends_on:
+      - app
+      - redis
+    restart: always
+
   nginx:
     image: nginx:alpine
     ports:
@@ -49,8 +85,7 @@ services:
     image: redis:latest
     volumes:
       - redis_data_library_service:/data
-    restart:
-      always
+    restart: always
 
   redisinsight:
     image: redislabs/redisinsight:latest
@@ -58,9 +93,7 @@ services:
       - "5540:5540"
     depends_on:
       - redis
-    restart:
-      always
-
+    restart: always
 
 volumes:
   pgdata_library_service:

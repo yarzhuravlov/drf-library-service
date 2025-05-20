@@ -6,4 +6,3 @@ Dockerfile
 db.sqlite3
 media
 .github
-telegram_bot
