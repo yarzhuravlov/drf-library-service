@@ -11,7 +11,6 @@ from payments.models import Payment
 
 User = get_user_model()
 
-
 class BorrowingPendingPaymentTests(TestCase):
     def setUp(self):
         self.client = APIClient()
@@ -31,21 +30,18 @@ class BorrowingPendingPaymentTests(TestCase):
             daily_fee=5,
         )
         self.book.authors.set([self.author])
-
         self.borrowing_for_pending = Borrowing.objects.create(
             user=self.user_with_pending_payment,
             book=self.book,
             borrow_date="2025-05-01",
             expected_return="2025-05-10",
         )
-
         self.pending_payment = Payment.objects.create(
             borrowing=self.borrowing_for_pending,
             status=Payment.Statuses.PENDING,
             type=Payment.Types.PAYMENT,
             money_to_pay=10.00,
         )
-
         self.borrowing_list_url = reverse("borrowings:borrowing-list")
 
     def test_cannot_borrow_with_pending_payments(self):
@@ -67,11 +63,9 @@ class BorrowingPendingPaymentTests(TestCase):
         self.book.refresh_from_db()
         self.assertEqual(self.book.inventory, 1)
 
-
-    @patch("payments.services.create_payment")
+    @patch("borrowings.views.create_payment")
     def test_can_borrow_without_pending_payments(self, mock_create_payment):
-        mock_create_payment.return_value = MagicMock(id="mocked_payment_id")
-
+        mock_create_payment.return_value = MagicMock()
         self.client.force_authenticate(user=self.user_no_pending_payment)
         self.assertFalse(
             Payment.objects.filter(
