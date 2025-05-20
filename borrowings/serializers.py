@@ -20,7 +20,9 @@ class BorrowingSerializer(serializers.ModelSerializer):
 
     def validate_book(self, book):
         if book.inventory < 1:
-            raise serializers.ValidationError("This book is currently not available for borrowing.")
+            raise serializers.ValidationError(
+                "This book is currently not available for borrowing."
+            )
         return book
 
     def create(self, validated_data):
@@ -64,7 +66,9 @@ class BorrowingReturnSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         if self.instance.actual_return:
-            raise serializers.ValidationError("This borrowing is already returned.")
+            raise serializers.ValidationError(
+                "This borrowing is already returned."
+            )
         return data
 
     def update(self, instance, validated_data):
