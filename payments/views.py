@@ -1,10 +1,9 @@
 from django.conf import settings
 from drf_spectacular.utils import extend_schema, OpenApiParameter
-from rest_framework import status
+from rest_framework import status, generics
 from rest_framework.decorators import action, api_view
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
-from rest_framework import generics
 
 import stripe
 
@@ -18,6 +17,7 @@ from payments.services import (
     create_payment,
 )
 from borrowings.models import Borrowing
+from notifications.handlers import send_notification_to_all_admin_users
 
 
 @api_view(['POST'])
@@ -119,28 +119,38 @@ class PaymentViewSet(
         permission_classes=[AllowAny],
     )
     def success(self, request):
-        session_id = self.request.GET.get("session_id")
+        session_id = request.query_params.get("session_id")
 
         if not session_id:
-            error_msg = "session_id is required"
             return Response(
-                error_msg,
-                status.HTTP_400_BAD_REQUEST,
+                {"detail": "session_id is required"},
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         payment = update_payment_by_session_id(session_id)
 
-        if payment:
-            success_msg = "Payment status changed to PAID"
+        if not payment:
             return Response(
-                success_msg
+                {"detail": "Paid session with such session_id not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        if not hasattr(payment, "borrowing"):
+            return Response(
+                {"detail": "Internal error: payment object is invalid."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-        not_found_msg = "Paid session with such session_id not found"
-        return Response(
-            not_found_msg,
-            status=status.HTTP_404_NOT_FOUND,
+        message = (
+            f"💰 <b>Success</b>\n"
+            f"ID: {payment.id}\n"
+            f"Amount: {payment.money_to_pay}\n"
+            f"User: {payment.borrowing.user.email}\n"
+            f"Date: {payment.borrowing.borrow_date.strftime('%Y-%m-%d')}"
         )
+
+        send_notification_to_all_admin_users(message)
+
+        return Response({"message": "Payment status changed to PAID"})
 
     @extend_schema(
         summary="Handle cancelled payment",
@@ -159,7 +169,7 @@ class PaymentViewSet(
         permission_classes=[AllowAny],
     )
     def cancel(self, *args, **kwargs):
-        return Response("Payment can be completed later")
+        return Response({"message": "Payment can be completed later"})
 
     @extend_schema(
         summary="Create payment for borrowing",

@@ -205,17 +205,23 @@ class CheckExpiredSessionsTaskTests(TestCase):
             expiration_at=timezone.now() - timedelta(minutes=1),
         )
 
-    def test_check_expired_sessions(self):
+    @patch("stripe.checkout.Session.retrieve")
+    def test_check_expired_sessions(self, mock_retrieve):
         from payments.tasks import check_expired_sessions
         
+        mock_retrieve.return_value.status = "expired"
+
         check_expired_sessions()
         
         self.payment.refresh_from_db()
         self.assertEqual(self.payment.status, Payment.Statuses.EXPIRED)
 
-    def test_check_expired_sessions_not_expired(self):
+    @patch("stripe.checkout.Session.retrieve")
+    def test_check_expired_sessions_not_expired(self, mock_retrieve):
         from payments.tasks import check_expired_sessions
         
+        mock_retrieve.side_effect = stripe.error.StripeError("Test error")
+
         self.payment.expiration_at = timezone.now() + timedelta(minutes=30)
         self.payment.save()
         
