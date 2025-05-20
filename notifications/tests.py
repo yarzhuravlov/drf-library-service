@@ -127,7 +127,7 @@ class NotificationsHandlersTests(TestCase):
     def test_send_notification_to_all_admin_users_success(
         self, mock_filter, mock_send
     ):
-        """Test sending notification to all admin users with telegram profile"""
+        """sending notification to all admin users with telegram profile"""
         # Mock for admin telegram ids
         mock_filter.return_value.values_list.return_value = [123, 456]
         mock_send.return_value = True
@@ -146,7 +146,7 @@ class NotificationsHandlersTests(TestCase):
     def test_send_notification_to_all_admin_users_no_admins(
         self, mock_filter, mock_send
     ):
-        """Test sending notification when no admin users have telegram profiles"""
+        """sending notification when no admin users have telegram profiles"""
         # Mock for empty admin telegram ids
         mock_filter.return_value.values_list.return_value = []
 
@@ -191,11 +191,13 @@ class NotificationsHandlersTests(TestCase):
     def test_send_notification_to_user_no_telegram(self, mock_send_user):
         """Test sending notification to user without a telegram profile"""
         # Create user without telegram profile
-        user_no_telegram = User.objects.create_user(
+        User.objects.create_user(
             email="notelegram@example.com", password="password123"
         )
 
-        result = send_notification_to_user(user_no_telegram, "User message")
+        result = send_notification_to_user(
+            User.objects.get(email="notelegram@example.com"), "User message"
+        )
 
         self.assertFalse(result)  # Should fail without telegram profile
         mock_send_user.assert_not_called()
@@ -331,7 +333,7 @@ class RegisterTelegramUserViewTests(TestCase):
         TelegramUser.objects.create(user=self.user, telegram_id=123456789)
 
         # Create second user
-        user2 = User.objects.create_user(
+        User.objects.create_user(
             email="user2@example.com", password="testpassword123"
         )
 
