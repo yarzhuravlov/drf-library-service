@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     "drf_spectacular_sidecar",
     "djoser",
     "social_django",
+    "corsheaders",
     # local
     "accounts",
     "books",
@@ -74,6 +75,7 @@ SITE_ID = 1
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "debug_toolbar.middleware.DebugToolbarMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
