@@ -1,4 +1,4 @@
-from django.utils.timezone import localdate, now
+from django.utils.timezone import localdate
 from rest_framework import serializers
 
 from books.serializers import BookSerializer
