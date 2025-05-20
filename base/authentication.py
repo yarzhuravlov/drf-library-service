@@ -16,7 +16,7 @@ class ServiceWithUserAuthentication(authentication.BaseAuthentication):
             not settings.SERVICE_SECRETS
             or service_secret not in settings.SERVICE_SECRETS
         ):
-            exceptions.AuthenticationFailed("Unknown service secret")
+            raise exceptions.AuthenticationFailed("Unknown service secret")
 
         user_id = request.META.get("HTTP_X_USER_ID")
 
