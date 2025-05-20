@@ -1,4 +1,3 @@
-import os
 from datetime import timedelta
 from decimal import Decimal
 
@@ -24,7 +23,9 @@ def calc_borrowing_total_price(borrowing: Borrowing) -> int:
     borrowing_period = (
         borrowing.expected_return - borrowing.borrow_date
     ).days
-    amount = borrowing_period * borrowing.book.daily_fee * 100  # Convert to cents
+    amount = (
+        borrowing_period * borrowing.book.daily_fee * 100
+    )  # Convert to cents
     return max(amount, MIN_AMOUNT)
 
 
@@ -34,12 +35,12 @@ def calc_borrowing_fine_price(
 ) -> int:
     """Calculate fine price for overdue borrowing in cents.
     Ensures the minimum amount is at least 50 cents."""
-    overdue_days = (
-        borrowing.actual_return - borrowing.expected_return
-    ).days
-    daily_fee = Decimal(borrowing.book.daily_fee)
-    multiplier = Decimal(fine_multiplier)
-    fine = overdue_days * int(str(daily_fee * multiplier).split(".")[0]) * 100
+    overdue_days = (borrowing.actual_return - borrowing.expected_return).days
+    fine = overdue_days * int(
+        (
+            str(Decimal(borrowing.book.daily_fee) * Decimal(fine_multiplier))
+        ).split(".")[0]
+    ) * 100  # Convert to cents
     return max(fine, MIN_AMOUNT)
 
 
@@ -49,15 +50,6 @@ def create_stripe_session(
     request: Request,
 ) -> stripe.checkout.Session:
     expiration_at = timezone.now() + timedelta(minutes=expiration_minutes)
-    
-    success_url = (
-        request.build_absolute_uri(reverse("payments:payment-success"))
-        + "?session_id={CHECKOUT_SESSION_ID}"
-    )
-    cancel_url = request.build_absolute_uri(
-        reverse("payments:payment-cancel")
-    )
-    
     session = stripe.checkout.Session.create(
         line_items=[
             {
@@ -72,8 +64,13 @@ def create_stripe_session(
             }
         ],
         mode="payment",
-        success_url=success_url,
-        cancel_url=cancel_url,
+        success_url=request.build_absolute_uri(
+            reverse("payments:payment-success")
+        )
+        + "?session_id={CHECKOUT_SESSION_ID}",
+        cancel_url=request.build_absolute_uri(
+            reverse("payments:payment-cancel")
+        ),
         metadata={"borrowing_id": borrowing.id},
         expires_at=int(expiration_at.timestamp()),
         customer_email=borrowing.user.email,
@@ -85,7 +82,6 @@ def create_stripe_session(
 def create_payment(borrowing: Borrowing, request: Request) -> Payment:
     borrowing_total_price = calc_borrowing_total_price(borrowing)
     session = create_stripe_session(borrowing, borrowing_total_price, request)
-    expiration_time = timezone.now() + timedelta(minutes=expiration_minutes)
 
     payment = Payment.objects.create(
         borrowing=borrowing,
@@ -93,7 +89,7 @@ def create_payment(borrowing: Borrowing, request: Request) -> Payment:
         session_id=session.id,
         money_to_pay=borrowing_total_price,
         type=Payment.Types.PAYMENT,
-        expiration_at=expiration_time,
+        expiration_at=timezone.now() + timedelta(minutes=expiration_minutes),
     )
     return payment
 
@@ -101,7 +97,6 @@ def create_payment(borrowing: Borrowing, request: Request) -> Payment:
 def create_fine_payment(borrowing: Borrowing, request: Request):
     fine = calc_borrowing_fine_price(borrowing)
     session = create_stripe_session(borrowing, fine, request)
-    expiration_time = timezone.now() + timedelta(minutes=expiration_minutes)
 
     payment = Payment.objects.create(
         borrowing=borrowing,
@@ -109,7 +104,7 @@ def create_fine_payment(borrowing: Borrowing, request: Request):
         session_id=session.id,
         money_to_pay=fine,
         type=Payment.Types.FINE,
-        expiration_at=expiration_time,
+        expiration_at=timezone.now() + timedelta(minutes=expiration_minutes),
     )
 
     return payment
@@ -141,12 +136,13 @@ def renew_payment_session(payment: Payment, request: Request) -> Payment:
         payment.money_to_pay,
         request
     )
-    expiration_time = timezone.now() + timedelta(minutes=expiration_minutes)
 
     payment.session_url = session.url
     payment.session_id = session.id
     payment.status = Payment.Statuses.PENDING
-    payment.expiration_at = expiration_time
+    payment.expiration_at = (
+        timezone.now() + timedelta(minutes=expiration_minutes)
+    )
     payment.save()
 
     return payment

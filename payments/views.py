@@ -36,8 +36,10 @@ def stripe_webhook(request):
             payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
         )
     except ValueError as e:
+        # Invalid payload
         return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
     except stripe.error.SignatureVerificationError as e:
+        # Invalid signature
         return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
 
     if event.type == 'checkout.session.completed':
@@ -105,7 +107,9 @@ class PaymentViewSet(
         responses={
             200: {"description": "Payment status changed to PAID"},
             400: {"description": "session_id is required"},
-            404: {"description": "Paid session with such session_id not found"},
+            404: {"description": (
+                "Paid session with such session_id not found"
+            )},
         },
     )
     @action(
@@ -118,19 +122,24 @@ class PaymentViewSet(
         session_id = self.request.GET.get("session_id")
 
         if not session_id:
+            error_msg = "session_id is required"
             return Response(
-                "session_id is required",
+                error_msg,
                 status.HTTP_400_BAD_REQUEST,
             )
 
         payment = update_payment_by_session_id(session_id)
 
         if payment:
-            return Response("Payment status changed to PAID")
+            success_msg = "Payment status changed to PAID"
+            return Response(
+                success_msg
+            )
 
+        not_found_msg = "Paid session with such session_id not found"
         return Response(
-            "Paid session with such session_id not found",
-            status.HTTP_404_NOT_FOUND,
+            not_found_msg,
+            status=status.HTTP_404_NOT_FOUND,
         )
 
     @extend_schema(
@@ -160,7 +169,9 @@ class PaymentViewSet(
         ),
         responses={
             201: PaymentSerializer,
-            400: {"description": "Invalid borrowing ID or payment exists"},
+            400: {"description": (
+                "Invalid borrowing ID or payment already exists"
+            )},
             404: {"description": "Borrowing not found"},
         },
     )
@@ -180,7 +191,9 @@ class PaymentViewSet(
             )
 
         if borrowing.user != request.user and not request.user.is_staff:
-            error_msg = "Not authorized to create payment for this borrowing"
+            error_msg = (
+                "Not authorized to create payment for this borrowing"
+            )
             return Response(
                 {"detail": error_msg},
                 status=status.HTTP_403_FORBIDDEN,
@@ -192,15 +205,19 @@ class PaymentViewSet(
             type=Payment.Types.PAYMENT,
         ).first()
 
-        if existing_payment and existing_payment.status == Payment.Statuses.PAID:
-            error_msg = "Payment already completed for this borrowing"
+        if existing_payment and existing_payment.status == Payment.Statuses.PAID:  # noqa: E501
+            error_msg = (
+                "Payment already completed for this borrowing"
+            )
             return Response(
                 {"detail": error_msg},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        if existing_payment and existing_payment.status == Payment.Statuses.PENDING:
-            error_msg = "Pending payment already exists for this borrowing"
+        if existing_payment and existing_payment.status == Payment.Statuses.PENDING:  # noqa: E501
+            error_msg = (
+                "Pending payment already exists for this borrowing"
+            )
             return Response(
                 {"detail": error_msg},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -209,11 +226,15 @@ class PaymentViewSet(
         try:
             payment = create_payment(borrowing, request)
             serializer = self.get_serializer(payment)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        except Exception as e:
             return Response(
-                {"detail": str(e)},
-                status=status.HTTP_400_BAD_REQUEST,
+                serializer.data,
+                status=status.HTTP_201_CREATED
+            )
+        except Exception as e:
+            error_msg = str(e)
+            return Response(
+                {"detail": error_msg},
+                status=status.HTTP_400_BAD_REQUEST
             )
 
 
@@ -251,4 +272,7 @@ class RenewPaymentView(generics.UpdateAPIView):
 
         payment = renew_payment_session(payment, request)
         serializer = self.get_serializer(payment)
-        return Response(serializer.data)
+
+        return Response(
+            serializer.data
+        )
