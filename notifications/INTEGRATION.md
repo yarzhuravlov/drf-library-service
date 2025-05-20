@@ -18,34 +18,32 @@ We provide three main functions for sending notifications:
 ### 1. Notifications for Administrators
 
 ```python
-from notifications.handlers import send_admin_notification
+from notifications.handlers import send_notification_to_all_admin_users
 
 # Usage example:
 message = "Your message here"
-send_admin_notification(message)
+send_notification_to_all_admin_users(message)
 ```
 
 ### 2. Notifications for Users
 
 ```python
-from notifications.handlers import send_user_notification
+from django.contrib.auth import get_user_model
+from notifications.handlers import send_notification_to_user
 
-# Usage example:
-user_telegram_id = 123456789  # User's Telegram ID
-message = "Your message here"
-send_user_notification(user_telegram_id, message)
+User = get_user_model()
+user = User.objects.get(email="email@site.com")
+send_notification_to_user(user, "message")
 
 ```
 
 ### 3. Advanced Function for More Flexibility
 
 ```python
-from notifications.handlers import send_telegram_notification_django
+from notifications.handlers import send_user_notification
 
-# Usage example for multiple recipients:
-telegram_ids = [123456789, 987654321]  # List of recipient IDs
-message = "Your message here"
-send_telegram_notification_django(telegram_ids, message)
+telegram_id = 123456789  # tg id
+send_user_notification(telegram_id, "message")
 ```
 
 ## Usage in Your Code
@@ -54,7 +52,7 @@ Each module developer is responsible for formatting the message text. This text 
 
 ```python
 # your_app/views.py or your_app/signals.py
-from notifications.handlers import send_admin_notification, send_user_notification
+from notifications.handlers import send_notification_to_all_admin_users, send_user_notification
 
 def some_view(request):
     # Your code...
@@ -66,7 +64,7 @@ def some_view(request):
         f"User: {request.user.email}\n"
         f"Action: creating a record"
     )
-    send_admin_notification(admin_message)
+    send_notification_to_all_admin_users(admin_message)
 
     # Format message for the user
     user_message = f"Thank you for using our service! Your request has been processed."
