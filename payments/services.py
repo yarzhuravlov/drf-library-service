@@ -12,7 +12,7 @@ from payments.models import Payment
 
 stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
 currency = os.environ.get("DEFAULT_CURRENCY", "usd")
-expiration_minutes = os.environ.get("EXPIRATION_MINUTES", 30)
+expiration_minutes = int(os.environ.get("EXPIRATION_MINUTES", "30"))
 fine_multiplier = os.environ.get("FINE_MULTIPLIER", "0.3")
 
 
@@ -115,3 +115,22 @@ def update_payment_by_session_id(session_id: str):
         return Payment
 
     return None
+
+
+def renew_payment_session(payment: Payment, request: Request) -> Payment:
+    """Create new Stripe session for expired payment."""
+    if payment.status != Payment.Statuses.EXPIRED:
+        return payment
+
+    session = create_stripe_session(
+        payment.borrowing,
+        payment.money_to_pay,
+        request
+    )
+
+    payment.session_url = session.url
+    payment.session_id = session.id
+    payment.status = Payment.Statuses.PENDING
+    payment.save()
+
+    return payment
