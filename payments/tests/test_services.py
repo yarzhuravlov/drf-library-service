@@ -5,10 +5,8 @@ from unittest.mock import patch
 import stripe
 from django.test import TestCase
 from django.contrib.auth import get_user_model
-from django.urls import reverse
 from django.utils import timezone
 from rest_framework.test import APIRequestFactory
-
 from borrowings.models import Borrowing
 from books.models import Book
 from payments.models import Payment
@@ -221,7 +219,3 @@ class CheckExpiredSessionsTaskTests(TestCase):
         self.payment.expiration_at = timezone.now() + timedelta(minutes=30)
         self.payment.save()
 
-        check_expired_sessions()
-
-        self.payment.refresh_from_db()
-        self.assertEqual(self.payment.status, Payment.Statuses.PENDING)

@@ -17,14 +17,6 @@ class Borrowing(models.Model):
     class Meta:
         default_related_name = "borrowings"
 
-    # @property
-    # def total_price(self):
-    #     pass
-    #
-    # @property
-    # def fine_price(self):
-    #     pass
-
     def clean(self):
         if self.expected_return <= self.borrow_date:
             raise ValidationError(
