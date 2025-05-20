@@ -24,6 +24,8 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - run: cat .env.sample >> $GITHUB_ENV
+
       - name: Run flake8
         run: flake8 .
       - name: Run tests
