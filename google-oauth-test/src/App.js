@@ -1,43 +1,62 @@
-import React from "react";
-import { useGoogleLogin } from "@react-oauth/google";
+import React, { useEffect, useState } from "react";
 
 function App() {
-  const login = useGoogleLogin({
-    flow: "auth-code",            // саме код-флоу
-    onSuccess: async codeResp => {
-      const { code, state } = codeResp;
-      const redirectUri = window.location.origin;
+  const [tokenData, setTokenData] = useState(null);
+  const redirectUri = window.location.origin;
 
-      // готуємо form-urlencoded тіло
-      const params = new URLSearchParams();
-      params.append("code", code);
-      params.append("state", state);
-      params.append("redirect_uri", redirectUri);
+  // After Google redirect, exchange code+state via query params
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("code");
+    const state = params.get("state");
 
-      const res = await fetch(
-        "http://localhost:8000/api/v1/auth/o/google-oauth2/",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/x-www-form-urlencoded"
-          },
-          body: params.toString()
-        }
-      );
-      const data = await res.json();
-      if (!res.ok) {
-        console.error("Social login error:", data);
-      } else {
-        console.log("✅ Logged in, API tokens:", data);
-      }
-    },
-    onError: () => console.error("Google login failed")
-  });
+    if (code && state) {
+      // Use query params for code, state, redirect_uri
+      const url = `http://localhost:8000/api/v1/auth/o/google-oauth2/?state=${encodeURIComponent(
+        state
+      )}&code=${encodeURIComponent(code)}&redirect_uri=${encodeURIComponent(
+        redirectUri
+      )}`;
+
+      fetch(url, {
+        method: "POST",
+        credentials: "include",
+      })
+        .then((res) => res.json())
+        .then((data) => setTokenData(data))
+        .catch((err) => console.error("Token exchange error:", err));
+    }
+  }, []);
+
+  // Start OAuth flow: GET auth_url then redirect
+  const startGoogleLogin = () => {
+    fetch(
+      `http://localhost:8000/api/v1/auth/o/google-oauth2/?redirect_uri=${encodeURIComponent(
+        redirectUri
+      )}`,
+      { credentials: "include" }
+    )
+      .then((res) => res.json())
+      .then(({ authorization_url }) => {
+        window.location.href = authorization_url;
+      })
+      .catch((err) => console.error("Auth URL fetch error:", err));
+  };
 
   return (
-    <div style={{ textAlign: "center", margin: "100px" }}>
-      <h1>Google OAuth Code-Flow</h1>
-      <button onClick={() => login()}>Login with Google</button>
+    <div className="p-4">
+      {!tokenData && (
+        <button onClick={startGoogleLogin} className="px-4 py-2 bg-blue-600 text-white rounded">
+          Login with Google
+        </button>
+      )}
+
+      {tokenData && (
+        <div className="mt-4">
+          <h2 className="text-xl font-bold">Tokens</h2>
+          <pre>{JSON.stringify(tokenData, null, 2)}</pre>
+        </div>
+      )}
     </div>
   );
 }

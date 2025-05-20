@@ -235,6 +235,8 @@ if cors_origins:
 else:
     CORS_ALLOWED_ORIGINS = []
 
+CORS_ALLOW_CREDENTIALS = True
+
 SPECTACULAR_SETTINGS = {
     "TITLE": "Library Service API",
     "DESCRIPTION": "API for borrowing book",
