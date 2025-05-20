@@ -12,7 +12,6 @@ User = get_user_model()
 
 
 class PaymentViewSetTests(APITestCase):
-
     def setUp(self):
         self.user = User.objects.create_user(email="test@example.com", password="password123")
         self.other_user = User.objects.create_user(email="other@example.com", password="password123")
@@ -42,29 +41,30 @@ class PaymentViewSetTests(APITestCase):
             type=Payment.Types.PAYMENT,
         )
 
-    @patch("payments.views.send_telegram_message")
+    @patch("payments.views.send_notification_to_all_admin_users")
     @patch("payments.views.update_payment_by_session_id")
-    def test_success_payment_sends_telegram_message(self, mock_update_payment, mock_send_telegram_message):
+    def test_success_payment_sends_notification(self, mock_update_payment, mock_send_notification):
         mock_update_payment.return_value = self.payment
 
         url = reverse("payments:payment-success")
         response = self.client.get(url, {"session_id": "valid_session_id"})
 
         self.assertEqual(response.status_code, 200)
-        self.assertIn("Payment status changed to PAID", response.data)
+        self.assertIn("message", response.data)
+        self.assertEqual(response.data["message"], "Payment status changed to PAID")
 
-        mock_send_telegram_message.assert_called_once()
-        sent_message = mock_send_telegram_message.call_args[0][0]
+        mock_send_notification.assert_called_once()
+        sent_message = mock_send_notification.call_args[0][0]
         self.assertIn(str(self.payment.money_to_pay), sent_message)
         self.assertIn(str(self.payment.id), sent_message)
         self.assertIn(self.user.email, sent_message)
 
     def test_success_payment_missing_session_id(self):
         url = reverse("payments:payment-success")
-        response = self.client.get(url)  # no session_id param
+        response = self.client.get(url)
 
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.data, "session_id is required")
+        self.assertEqual(response.data, {"detail": "session_id is required"})
 
     @patch("payments.views.update_payment_by_session_id")
     def test_success_payment_not_found(self, mock_update_payment):
@@ -74,32 +74,29 @@ class PaymentViewSetTests(APITestCase):
         response = self.client.get(url, {"session_id": "nonexistent"})
 
         self.assertEqual(response.status_code, 404)
-        self.assertEqual(response.data, "Paid session with such session_id not found")
+        self.assertEqual(response.data, {"detail": "Paid session with such session_id not found"})
 
     def test_cancel_payment(self):
         url = reverse("payments:payment-cancel")
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data, "Payment can be completed later")
+        self.assertEqual(response.data, {"message": "Payment can be completed later"})
 
     def test_list_payments_requires_auth(self):
         url = reverse("payments:payment-list")
 
-        # Unauthenticated should get 401
         response = self.client.get(url)
         self.assertEqual(response.status_code, 401)
 
-        # Authenticated user can get their payments
         self.client.force_authenticate(user=self.user)
         response = self.client.get(url)
+
         self.assertEqual(response.status_code, 200)
-        # Check payments belong to user only by borrowing id
         for item in response.data:
             self.assertEqual(item["borrowing"], self.borrowing.id)
 
     def test_list_payments_filters_non_staff(self):
-        # Create payment for other user
         other_borrowing = Borrowing.objects.create(
             user=self.other_user,
             book=self.book,
@@ -120,7 +117,6 @@ class PaymentViewSetTests(APITestCase):
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, 200)
-        # Ensure payments belong only to self.user by borrowing id
         for item in response.data:
             self.assertEqual(item["borrowing"], self.borrowing.id)
 

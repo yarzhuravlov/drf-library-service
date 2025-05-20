@@ -1,8 +1,7 @@
-from rest_framework import status
+from rest_framework import status, generics
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
-from rest_framework import generics
 
 from base.mixins import ListModelMixin, RetrieveModelMixin
 from base.viewsets import GenericViewSet
@@ -12,7 +11,7 @@ from payments.services import (
     update_payment_by_session_id,
     renew_payment_session,
 )
-from payments.utils import send_telegram_message
+from notifications.handlers import send_notification_to_all_admin_users
 
 
 class PaymentViewSet(
@@ -21,11 +20,8 @@ class PaymentViewSet(
     GenericViewSet,
 ):
     queryset = Payment.objects.all()
-
     request_serializer_class = PaymentSerializer
     response_serializer_class = PaymentSerializer
-
-    # permission_classes = [IsAuthenticated]
 
     action_permission_classes = {
         "list": IsAuthenticated,
@@ -49,35 +45,33 @@ class PaymentViewSet(
         permission_classes=[AllowAny],
     )
     def success(self, request):
-        session_id = self.request.GET.get("session_id")
+        session_id = request.query_params.get("session_id")
 
         if not session_id:
             return Response(
-                "session_id is required",
-                status.HTTP_400_BAD_REQUEST,
+                {"detail": "session_id is required"},
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         payment = update_payment_by_session_id(session_id)
 
-        if payment:
-            message = (
-                f"💰 <b>Success</b>\n"
-                f"ID: {payment.id}\n"
-                f"Amount: {payment.money_to_pay}\n"
-                f"User: {payment.borrowing.user.email}\n"
-                f"Date: {payment.borrowing.borrow_date.strftime('%Y-%m-%d')}"
+        if not payment:
+            return Response(
+                {"detail": "Paid session with such session_id not found"},
+                status=status.HTTP_404_NOT_FOUND,
             )
-            try:
-                send_telegram_message(message)
-            except Exception as e:
-                print(f"Failed to send Telegram message: {e}")
 
-            return Response("Payment status changed to PAID")
-
-        return Response(
-            "Paid session with such session_id not found",
-            status.HTTP_404_NOT_FOUND,
+        message = (
+            f"💰 <b>Success</b>\n"
+            f"ID: {payment.id}\n"
+            f"Amount: {payment.money_to_pay}\n"
+            f"User: {payment.borrowing.user.email}\n"
+            f"Date: {payment.borrowing.borrow_date.strftime('%Y-%m-%d')}"
         )
+
+        send_notification_to_all_admin_users(message)
+
+        return Response({"message": "Payment status changed to PAID"})
 
     @action(
         detail=False,
@@ -86,7 +80,7 @@ class PaymentViewSet(
         permission_classes=[AllowAny],
     )
     def cancel(self, *args, **kwargs):
-        return Response("Payment can be completed later")
+        return Response({"message": "Payment can be completed later"})
 
 
 class RenewPaymentView(generics.UpdateAPIView):
@@ -101,7 +95,7 @@ class RenewPaymentView(generics.UpdateAPIView):
         if payment.borrowing.user != request.user:
             return Response(
                 {"detail": "Not authorized to renew this payment."},
-                status=status.HTTP_403_FORBIDDEN
+                status=status.HTTP_403_FORBIDDEN,
             )
 
         payment = renew_payment_session(payment, request)
