@@ -4,119 +4,208 @@ from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from telegram_bot.config import API_BASE_URL
-import requests
-
-from telegram_bot.request_service import inject_service_auth_headers
+from telegram_bot.request_service import (
+    get_me,
+    get_user_borrowings,
+    get_book_details,
+)
+import httpx
 
 logger = logging.getLogger(__name__)
 router = Router()
 
 
+async def get_book_title(book_id, state: FSMContext):
+    """Gets the book title by ID"""
+    if not book_id:
+        return "Unknown book"
+
+    try:
+        data = await state.get_data()
+        access_token = data.get("access_token")
+
+        if not access_token:
+            return f"Book #{book_id}"
+
+        book = await get_book_details(access_token, book_id)
+        if not book:
+            return f"Book #{book_id}"
+
+        return book.get("title", f"Book #{book_id}")
+    except Exception as e:
+        logger.error(f"Error getting book title: {e}")
+        return f"Book #{book_id}"
+
+
 @router.message(Command("profile"))
 async def profile(message: types.Message, state: FSMContext):
     data = await state.get_data()
-    user_id = data["user_id"]
-    try:
-        resp = requests.get(
-            f"{API_BASE_URL}auth/users/me/", headers=inject_service_auth_headers(user_id), timeout=10
-        )
-        if resp.status_code == 200:
-            u = resp.json()
-            text = f"👤 <b>Профіль</b>\nІм'я: {u.get('first_name','')} {u.get('last_name','')}\nEmail: {u.get('email','')}\nПідтверджено: {'✅' if u.get('is_verified') else '❌'}"
-            builder = InlineKeyboardBuilder()
-            builder.button(text="💰 Баланс", callback_data="show_balance")
-            builder.button(text="📋 Оренди", callback_data="show_borrowings")
-            builder.button(text="💳 Платежі", callback_data="show_payments")
-            builder.adjust(2)
-            await message.answer(text, reply_markup=builder.as_markup())
-        else:
-            await message.answer("Помилка отримання профілю.")
-    except Exception as e:
-        logger.error(f"Profile error: {e}")
-        await message.answer("Помилка підключення до бекенду.")
-
-
-@router.callback_query(F.data == "show_balance")
-async def show_balance(callback: types.CallbackQuery, state: FSMContext):
-    data = await state.get_data()
     access_token = data.get("access_token")
     if not access_token:
-        await callback.answer("/login")
+        await message.answer("❗ First, log in via /login")
         return
-    headers = {"Authorization": f"Bearer {access_token}"}
+
     try:
-        resp = requests.get(
-            f"{API_BASE_URL}payments/payment/balance/",
-            headers=headers,
-            timeout=10,
+        user = await get_me(access_token)
+        if not user:
+            await message.answer(
+                "❌ Error getting profile. Try to log in via /login"
+            )
+            return
+
+        user_id = user.get("id")
+        if user_id and not data.get("user_id"):
+            await state.update_data(user_id=user_id)
+
+        # Get verification status
+        verification_status = (
+            "✅ Verified" if user.get("is_verified") else "❌ Not verified"
         )
-        if resp.status_code == 200:
-            balance = resp.json().get("balance", 0)
-            await callback.message.answer(f"💰 <b>Баланс:</b> {balance} грн")
-        else:
-            await callback.message.answer("Помилка отримання балансу.")
+
+        first_name = user.get("first_name", "")
+        last_name = user.get("last_name", "")
+        full_name = f"{first_name} {last_name}".strip()
+        if not full_name:
+            full_name = "Not specified"
+
+        text = (
+            f"👤 <b>USER PROFILE</b>\n\n"
+            f"🆔 <b>ID:</b> #{user.get('id', 'Unknown')}\n"
+            f"👨‍💼 <b>Name:</b> {full_name}\n"
+            f"✉️ <b>Email:</b> {user.get('email', 'Not specified')}\n"
+            f"🔐 <b>Status:</b> {verification_status}\n"
+        )
+
+        builder = InlineKeyboardBuilder()
+        builder.button(text="📋 My Rentals", callback_data="show_borrowings")
+        builder.button(text="💳 My Payments", callback_data="show_payments")
+        builder.adjust(2)
+
+        await message.answer(text, reply_markup=builder.as_markup())
     except Exception as e:
-        logger.error(f"Balance error: {e}")
-        await callback.message.answer("Помилка підключення до бекенду.")
+        logger.error(f"Profile error: {e}")
+        await message.answer("❌ Error retrieving profile.")
 
 
 @router.callback_query(F.data == "show_borrowings")
 async def show_borrowings(callback: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
+    user_id = data.get("user_id")
     access_token = data.get("access_token")
+
     if not access_token:
-        await callback.answer("/login")
+        await callback.answer("❗ First, log in via /login")
         return
-    headers = {"Authorization": f"Bearer {access_token}"}
+
+    if not user_id:
+        await callback.message.answer("No user ID. Try to log in via /login")
+        return
+
     try:
-        resp = requests.get(
-            f"{API_BASE_URL}borrowings/", headers=headers, timeout=10
-        )
-        if resp.status_code == 200:
-            borrowings = resp.json()
-            if not borrowings:
-                await callback.message.answer("Оренд немає.")
-                return
-            text = "\n".join(
-                [
-                    f"{b['id']}. {b['book']} {b['borrow_date']} — {b['expected_return_date']}"
-                    for b in borrowings
-                ]
+        borrowings = await get_user_borrowings(user_id)
+
+        if not borrowings:
+            await callback.message.answer("You don't have any active rentals.")
+            return
+
+        # Create a list to store the lines
+        borrowing_lines = []
+
+        # Process each rental
+        for b in borrowings:
+            book_title = await get_book_title(b.get("book"), state)
+            borrowing_text = (
+                f"📖 <b>{book_title}</b>\n"
+                f"   🆔 #{b['id']}\n"
+                f"   📅 Borrowed: {b.get('borrow_date', 'No date')}\n"
+                f"   🔄 Return by: {b.get('expected_return', 'Not specified')}"
             )
-            await callback.message.answer(f"📋 <b>Оренди:</b>\n{text}")
-        else:
-            await callback.message.answer("Помилка отримання оренд.")
+            borrowing_lines.append(borrowing_text)
+
+        text = "\n\n".join(borrowing_lines)
+
+        await callback.message.answer(
+            f"📋 <b>Your active rentals:</b>\n\n{text}"
+        )
     except Exception as e:
         logger.error(f"Borrowings error: {e}")
-        await callback.message.answer("Помилка підключення до бекенду.")
+        await callback.message.answer("Error retrieving rentals.")
 
 
 @router.callback_query(F.data == "show_payments")
 async def show_payments(callback: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     access_token = data.get("access_token")
+
     if not access_token:
-        await callback.answer("/login")
+        await callback.answer("❗ First, log in via /login")
         return
-    headers = {"Authorization": f"Bearer {access_token}"}
+
     try:
-        resp = requests.get(
-            f"{API_BASE_URL}payments/payment/", headers=headers, timeout=10
-        )
-        if resp.status_code == 200:
-            payments = resp.json()
-            if not payments:
-                await callback.message.answer("Платежів немає.")
-                return
-            text = "\n".join(
-                [
-                    f"{p['id']}. {p['amount']} грн — {p['type']} — {p['status']}"
-                    for p in payments
-                ]
-            )
-            await callback.message.answer(f"💳 <b>Платежі:</b>\n{text}")
-        else:
-            await callback.message.answer("Помилка отримання платежів.")
+        async with httpx.AsyncClient() as client:
+            try:
+                resp = await client.get(
+                    f"{API_BASE_URL}payments/payment/",
+                    headers={"Authorization": f"Bearer {access_token}"},
+                    timeout=10.0,
+                )
+                resp.raise_for_status()
+                payments = resp.json()
+
+                if not payments:
+                    await callback.message.answer(
+                        "💳 You don't have any payments yet."
+                    )
+                    return
+
+                def get_status_emoji(status):
+                    status_map = {
+                        "PENDING": "⏳ Awaiting payment",
+                        "PAID": "✅ Paid",
+                        "CANCELED": "❌ Canceled",
+                        "FAILED": "❌ Payment error",
+                    }
+                    return status_map.get(status, f"❓ {status}")
+
+                # Function to get payment type with emoji
+                def get_type_emoji(payment_type):
+                    type_map = {
+                        "PAYMENT": "💵 Rental fee",
+                        "FINE": "💸 Late return fine",
+                    }
+                    return type_map.get(payment_type, f"❓ {payment_type}")
+
+                payment_lines = []
+                for p in payments:
+                    payment_id = p.get("id", "#")
+                    amount = p.get("amount", "0")
+                    payment_type = get_type_emoji(p.get("type", "Unknown"))
+                    status = get_status_emoji(p.get("status", "Unknown"))
+
+                    payment_text = (
+                        f"🧾 <b>Payment #{payment_id}</b>\n"
+                        f"   💰 Amount: {amount} UAH\n"
+                        f"   📋 Type: {payment_type}\n"
+                        f"   🔄 Status: {status}"
+                    )
+                    payment_lines.append(payment_text)
+
+                text = "\n\n".join(payment_lines)
+                await callback.message.answer(
+                    f"💳 <b>Your payments:</b>\n\n{text}"
+                )
+            except httpx.HTTPStatusError as e:
+                if e.response.status_code == 404:
+                    logger.warning("Payments endpoint not found")
+                    await callback.message.answer(
+                        "ℹ️ Payment function is not available"
+                    )
+                else:
+                    logger.error(f"Payments error: {e.response.status_code}")
+                    error_code = e.response.status_code
+                    error_msg = f"❌ Error retrieving payments: {error_code}"
+                    await callback.message.answer(error_msg)
     except Exception as e:
         logger.error(f"Payments error: {e}")
-        await callback.message.answer("Помилка підключення до бекенду.")
+        error_msg = "❌ Server connection error. Please try again later."
+        await callback.message.answer(error_msg)
