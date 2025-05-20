@@ -1,13 +1,14 @@
 from django.utils.timezone import localdate
 from rest_framework import serializers
 
+from books.models import Book
 from books.serializers import BookSerializer
 from borrowings.models import Borrowing
 from payments.serializers import PaymentSerializer
 
 
 class BorrowingSerializer(serializers.ModelSerializer):
-    book = BookSerializer(read_only=True)
+    book = serializers.PrimaryKeyRelatedField(queryset=Book.objects.all())
     payments = PaymentSerializer(many=True, read_only=True)
 
     class Meta:
@@ -17,6 +18,7 @@ class BorrowingSerializer(serializers.ModelSerializer):
             "borrow_date",
             "expected_return",
             "actual_return",
+            "book",
             "payments",
         )
         read_only_fields = ("id", "user", "actual_return")
