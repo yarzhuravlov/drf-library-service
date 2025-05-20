@@ -1,11 +1,13 @@
-from rest_framework import viewsets
+from rest_framework import viewsets, status
+from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 
 from borrowings.models import Borrowing
 from borrowings.serializers import (
     BorrowingSerializer,
     BorrowingListSerializer,
-    BorrowingRetrieveSerializer,
+    BorrowingRetrieveSerializer, BorrowingReturnSerializer,
 )
 
 
@@ -39,7 +41,27 @@ class BorrowingViewSet(viewsets.ModelViewSet):
             return BorrowingListSerializer
         if self.action == "retrieve":
             return BorrowingRetrieveSerializer
+        if self.action == "return_borrowing":
+            return BorrowingReturnSerializer
         return BorrowingSerializer
+
+    @action(
+        detail=True,
+        methods=["post"],
+        serializer_class=BorrowingReturnSerializer,
+    )
+    def return_borrowing(self, request, pk=None):
+        if not request.user.is_staff:
+            return Response(
+                {"detail:" "Only admin can return borrowings."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        borrowing = self.get_object()
+        serializer = self.get_serializer(instance=borrowing, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({"detail": "Book returned successfully."})
 
     def perform_create(self, serializer):
         return serializer.save(user=self.request.user)
