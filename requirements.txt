@@ -21,10 +21,14 @@ click-repl==0.3.0
 colorama==0.4.6
 cryptography==45.0.2
 defusedxml==0.7.1
+dj-rest-auth==7.0.1
 Django==5.2.1
 django-cors-headers==4.7.0
+django-allauth==65.8.0
 django-debug-toolbar==5.2.0
 django-phonenumber-field==8.1.0
+django-stubs==5.2.0
+django-stubs-ext==5.2.0
 djangorestframework==3.16.0
 djangorestframework_simplejwt==5.5.0
 djoser==2.3.1
@@ -32,6 +36,7 @@ drf-spectacular==0.28.0
 drf-spectacular-sidecar==2025.5.1
 flake8==7.2.0
 frozenlist==1.6.0
+gunicorn==23.0.0
 idna==3.10
 inflection==0.5.1
 iniconfig==2.1.0
@@ -47,12 +52,15 @@ phonenumbers==9.0.5
 pluggy==1.6.0
 prompt_toolkit==3.0.51
 propcache==0.3.1
+psycopg2-binary==2.9.10
 pycodestyle==2.13.0
 pycparser==2.22
 pydantic==2.11.4
 pydantic_core==2.33.2
 pyflakes==3.3.2
 PyJWT==2.9.0
+pytest==8.3.5
+pytest-django==4.11.1
 python-dateutil==2.9.0.post0
 python-dotenv==1.0.1
 python3-openid==3.2.0
@@ -67,6 +75,7 @@ social-auth-app-django==5.4.3
 social-auth-core==4.6.1
 sqlparse==0.5.3
 stripe==12.1.0
+types-PyYAML==6.0.12.20250516
 typing-inspection==0.4.0
 typing_extensions==4.13.2
 tzdata==2025.2

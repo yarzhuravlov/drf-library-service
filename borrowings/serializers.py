@@ -1,11 +1,17 @@
 from django.utils.timezone import localdate
 from rest_framework import serializers
 
+from books.models import Book
 from books.serializers import BookSerializer
 from borrowings.models import Borrowing
+from payments.services import create_fine_payment
+from payments.serializers import PaymentSerializer
 
 
 class BorrowingSerializer(serializers.ModelSerializer):
+    book = serializers.PrimaryKeyRelatedField(queryset=Book.objects.all())
+    payments = PaymentSerializer(many=True, read_only=True)
+
     class Meta:
         model = Borrowing
         fields = (
@@ -14,7 +20,7 @@ class BorrowingSerializer(serializers.ModelSerializer):
             "expected_return",
             "actual_return",
             "book",
-            "user",
+            "payments",
         )
         read_only_fields = ("id", "user", "actual_return")
 
@@ -72,8 +78,14 @@ class BorrowingReturnSerializer(serializers.ModelSerializer):
         return data
 
     def update(self, instance, validated_data):
-        instance.actual_return = localdate()
+        today = localdate()
+        instance.actual_return = today
         instance.book.inventory += 1
         instance.book.save()
         instance.save()
+
+        if today > instance.expected_return:
+            request = self.context.get("request")
+            create_fine_payment(instance, request)
+
         return instance

@@ -1,0 +1,201 @@
+[
+  {
+    "model": "accounts.user",
+    "pk": 1,
+    "fields": {
+      "password": "pbkdf2_sha256$720000$l3K5gfH8tUQEcRBAvQXZcB$yO4tYL8Fp7hqLq1kRNtA8+/UQa+XKQtRsG3bhcD+yLs=",
+      "is_superuser": true,
+      "first_name": "Admin",
+      "last_name": "User",
+      "is_staff": true,
+      "is_active": true,
+      "date_joined": "2025-05-20T12:00:00Z",
+      "email": "admin@example.com",
+      "is_verified": true,
+      "date_of_birth": "1990-01-01",
+      "created_at": "2025-05-20T12:00:00Z",
+      "updated_at": "2025-05-20T12:00:00Z"
+    }
+  },
+  {
+    "model": "accounts.user",
+    "pk": 2,
+    "fields": {
+      "password": "pbkdf2_sha256$720000$l3K5gfH8tUQEcRBAvQXZcB$yO4tYL8Fp7hqLq1kRNtA8+/UQa+XKQtRsG3bhcD+yLs=",
+      "is_superuser": false,
+      "first_name": "Regular",
+      "last_name": "User",
+      "is_staff": false,
+      "is_active": true,
+      "date_joined": "2025-05-20T12:00:00Z",
+      "email": "user@example.com",
+      "is_verified": true,
+      "date_of_birth": "1995-01-01",
+      "created_at": "2025-05-20T12:00:00Z",
+      "updated_at": "2025-05-20T12:00:00Z"
+    }
+  },
+  {
+    "model": "accounts.user",
+    "pk": 3,
+    "fields": {
+      "password": "pbkdf2_sha256$720000$l3K5gfH8tUQEcRBAvQXZcB$yO4tYL8Fp7hqLq1kRNtA8+/UQa+XKQtRsG3bhcD+yLs=",
+      "is_superuser": false,
+      "first_name": "Telegram",
+      "last_name": "User",
+      "is_staff": false,
+      "is_active": true,
+      "date_joined": "2025-05-20T12:00:00Z",
+      "email": "telegram@example.com",
+      "is_verified": true,
+      "date_of_birth": "1998-01-01",
+      "created_at": "2025-05-20T12:00:00Z",
+      "updated_at": "2025-05-20T12:00:00Z"
+    }
+  },
+  {
+    "model": "notifications.telegramuser",
+    "pk": 1,
+    "fields": {
+      "user": 3,
+      "telegram_id": 368222740
+    }
+  },
+  {
+    "model": "books.author",
+    "pk": 1,
+    "fields": {
+      "first_name": "George",
+      "last_name": "Orwell"
+    }
+  },
+  {
+    "model": "books.author",
+    "pk": 2,
+    "fields": {
+      "first_name": "J.K.",
+      "last_name": "Rowling"
+    }
+  },
+  {
+    "model": "books.author",
+    "pk": 3,
+    "fields": {
+      "first_name": "J.R.R.",
+      "last_name": "Tolkien"
+    }
+  },
+  {
+    "model": "books.book",
+    "pk": 1,
+    "fields": {
+      "title": "1984",
+      "cover": "hard",
+      "inventory": 5,
+      "daily_fee": 10,
+      "authors": [1]
+    }
+  },
+  {
+    "model": "books.book",
+    "pk": 2,
+    "fields": {
+      "title": "Harry Potter and the Philosopher's Stone",
+      "cover": "soft",
+      "inventory": 10,
+      "daily_fee": 8,
+      "authors": [2]
+    }
+  },
+  {
+    "model": "books.book",
+    "pk": 3,
+    "fields": {
+      "title": "The Lord of the Rings: The Fellowship of the Ring",
+      "cover": "hard",
+      "inventory": 3,
+      "daily_fee": 15,
+      "authors": [3]
+    }
+  },
+  {
+    "model": "books.book",
+    "pk": 4,
+    "fields": {
+      "title": "Animal Farm",
+      "cover": "soft",
+      "inventory": 7,
+      "daily_fee": 5,
+      "authors": [1]
+    }
+  },
+  {
+    "model": "borrowings.borrowing",
+    "pk": 1,
+    "fields": {
+      "borrow_date": "2025-05-01",
+      "expected_return": "2025-05-15",
+      "actual_return": "2025-05-14",
+      "book": 1,
+      "user": 2
+    }
+  },
+  {
+    "model": "borrowings.borrowing",
+    "pk": 2,
+    "fields": {
+      "borrow_date": "2025-05-10",
+      "expected_return": "2025-05-25",
+      "actual_return": null,
+      "book": 2,
+      "user": 2
+    }
+  },
+  {
+    "model": "borrowings.borrowing",
+    "pk": 3,
+    "fields": {
+      "borrow_date": "2025-05-05",
+      "expected_return": "2025-05-20",
+      "actual_return": null,
+      "book": 3,
+      "user": 3
+    }
+  },
+  {
+    "model": "payments.payment",
+    "pk": 1,
+    "fields": {
+      "borrowing": 1,
+      "session_url": "https://stripe.com/session/abc123",
+      "session_id": "cs_test_abc123",
+      "money_to_pay": 140,
+      "status": "paid",
+      "type": "payment"
+    }
+  },
+  {
+    "model": "payments.payment",
+    "pk": 2,
+    "fields": {
+      "borrowing": 2,
+      "session_url": "https://stripe.com/session/def456",
+      "session_id": "cs_test_def456",
+      "money_to_pay": 120,
+      "status": "pending",
+      "type": "payment"
+    }
+  },
+  {
+    "model": "payments.payment",
+    "pk": 3,
+    "fields": {
+      "borrowing": 3,
+      "session_url": "https://stripe.com/session/ghi789",
+      "session_id": "cs_test_ghi789",
+      "money_to_pay": 225,
+      "status": "pending",
+      "type": "payment"
+    }
+  }
+]
