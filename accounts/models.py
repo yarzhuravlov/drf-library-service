@@ -36,6 +36,7 @@ class UserManager(BaseUserManager):
 class User(TimestampedBaseModel, AbstractUser):
     username = None
     email = models.EmailField("email address", unique=True)
+    is_verified = models.BooleanField(default=False)
     date_of_birth = models.DateField(
         null=True, blank=True, verbose_name="Date of birth",
         help_text="User's birth date (YYYY-MM-DD)",

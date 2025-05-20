@@ -181,6 +181,10 @@ DJOSER = {
     "SERIALIZERS": {},
     "DOMAIN": "127.0.0.1:8000",
     "SITE_NAME": "ReadRiot",
+    "EMAIL": {
+            "activation": "accounts.email.ActivationEmail",
+        },
+    "EMAIL_FRONTEND_SITE_NAME": "ReadRiot",
 }
 
 EMAIL_BACKEND = os.environ.get("EMAIL_BACKEND")
