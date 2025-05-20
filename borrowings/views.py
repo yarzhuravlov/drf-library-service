@@ -76,7 +76,7 @@ class BorrowingViewSet(viewsets.ModelViewSet):
         if pending_exists:
             raise ValidationError(
                 {
-                    "detail": "You have pending payments. Please settle them before borrowing another book."
+                    "detail": "You have pending payments. Please settle them before borrowing another book."  # noqa: E501
                 }
             )
 
