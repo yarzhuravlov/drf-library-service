@@ -1,11 +1,11 @@
 # Library Service API
 
-Система управління бібліотекою на Django REST Framework.
+Library management system on Django REST Framework.
 
-## Встановлення
+## Installation
 
-1. Склонуйте репозиторій
-2. Створіть та активуйте віртуальне середовище
+1. Clone the repository
+2. Create and activate a virtual environment
 
 ```
 python -m venv venv
@@ -13,59 +13,59 @@ source venv/bin/activate  # Linux/macOS
 venv\Scripts\activate  # Windows
 ```
 
-3. Встановіть залежності
+3. Install dependencies
 
 ```
 pip install -r requirements.txt
 ```
 
-4. Скопіюйте файл `.env.sample` до `.env` та налаштуйте змінні середовища
-5. Застосуйте міграції
+4. Copy the `.env.sample` file to `.env` and configure environment variables
+5. Apply migrations
 
 ```
 python manage.py migrate
 ```
 
-6. Запустіть сервер
+6. Run the server
 
 ```
 python manage.py runserver
 ```
 
-## Система сповіщень
+## Notification System
 
-Система сповіщень складається з двох компонентів:
+The notification system consists of two components:
 
-1. **notifications** - Django додаток, який відправляє повідомлення у чергу Redis
-2. **telegram_bot** - Воркер-процес, який слухає чергу Redis та відправляє повідомлення через Telegram API
+1. **notifications** - Django app that sends messages to a Redis queue
+2. **telegram_bot** - Worker process that listens to the Redis queue and sends messages via Telegram API
 
-### Налаштування
+### Configuration
 
-1. Створіть бота в Telegram через [@BotFather](https://t.me/BotFather) та отримайте токен
-2. Додайте токен у файл `.env`:
+1. Create a bot in Telegram via [@BotFather](https://t.me/BotFather) and get a token
+2. Add the token to the `.env` file:
 
 ```
 TELEGRAM_BOT_TOKEN=your_telegram_bot_token_here
 ```
 
-3. Переконайтеся, що Redis сервер запущений
-4. Запустіть воркер Telegram бота:
+3. Make sure the Redis server is running
+4. Run the Telegram bot worker:
 
 ```
 python telegram_bot/run_worker.py
 ```
 
-### Відправка сповіщень
+### Sending Notifications
 
-Для відправки сповіщень використовуйте функцію `send_telegram_notification_django` з модуля `notifications.handlers`:
+To send notifications, use the `send_telegram_notification_django` function from the `notifications.handlers` module:
 
 ```python
 from notifications.handlers import send_telegram_notification_django
 
-# Відправка через Celery (асинхронно)
+# Sending via Celery (asynchronously)
 send_telegram_notification_django(
-    telegram_ids=[123456789],  # ID користувача або чату в Telegram
-    text="Привіт, це тестове повідомлення!",
+    telegram_ids=[123456789],  # User or chat ID in Telegram
+    text="Hello, this is a test message!",
     use_celery=True
 )
 

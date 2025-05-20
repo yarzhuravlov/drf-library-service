@@ -1,10 +1,10 @@
-# Інтеграція сповіщень у ваш модуль
+# Notification Integration in Your Module
 
-Цей документ описує, як інтегрувати сповіщення в ваш Django-модуль. Основні функції для відправки сповіщень вже реалізовані — вам потрібно лише викликати їх з вашого коду та передати готові повідомлення.
+This document describes how to integrate notifications into your Django module. The main notification functions are already implemented — you just need to call them from your code and pass the prepared messages.
 
-> **ВАЖЛИВО:** Формування тексту повідомлення знаходиться повністю у відповідальності розробника модуля. Функції сповіщень приймають лише готовий текст повідомлення.
+> **IMPORTANT:** Formatting the message text is entirely the module developer's responsibility. Notification functions only accept pre-formatted message text.
 
-## Доступні функції для відправки сповіщень
+## Available Notification Functions
 
 Start commands
 
@@ -13,117 +13,117 @@ python -m telegram_bot.worker - worker who works with redis
 python manage.py runserser - server
 redis - localy
 
-Ми надаємо три основні функції для надсилання сповіщень:
+We provide three main functions for sending notifications:
 
-### 1. Сповіщення для адміністраторів
+### 1. Notifications for Administrators
 
 ```python
 from notifications.handlers import send_admin_notification
 
-# Приклад використання:
-message = "Ваше повідомлення тут"
+# Usage example:
+message = "Your message here"
 send_admin_notification(message)
 ```
 
-### 2. Сповіщення для користувачів
+### 2. Notifications for Users
 
 ```python
 from notifications.handlers import send_user_notification
 
-# Приклад використання:
-user_telegram_id = 123456789  # ID користувача в Telegram
-message = "Ваше повідомлення тут"
+# Usage example:
+user_telegram_id = 123456789  # User's Telegram ID
+message = "Your message here"
 send_user_notification(user_telegram_id, message)
 
 ```
 
-### 3. Розширена функція для більшої гнучкості
+### 3. Advanced Function for More Flexibility
 
 ```python
 from notifications.handlers import send_telegram_notification_django
 
-# Приклад використання для декількох отримувачів:
-telegram_ids = [123456789, 987654321]  # Список ID отримувачів
-message = "Ваше повідомлення тут"
+# Usage example for multiple recipients:
+telegram_ids = [123456789, 987654321]  # List of recipient IDs
+message = "Your message here"
 send_telegram_notification_django(telegram_ids, message)
 ```
 
-## Використання в вашому коді
+## Usage in Your Code
 
-Кожен розробник модуля відповідає за формування тексту повідомлення. Потім цей текст передається у функції сповіщень:
+Each module developer is responsible for formatting the message text. This text is then passed to the notification functions:
 
 ```python
-# your_app/views.py або your_app/signals.py
+# your_app/views.py or your_app/signals.py
 from notifications.handlers import send_admin_notification, send_user_notification
 
 def some_view(request):
-    # Ваш код...
+    # Your code...
 
-    # Формуєте повідомлення для адміністраторів
+    # Format message for administrators
     admin_message = (
-        f"<b>Нова дія в системі</b>\n\n"
-        f"Дата: {datetime.now().strftime('%Y-%m-%d %H:%M')}\n"
-        f"Користувач: {request.user.email}\n"
-        f"Дія: створення запису"
+        f"<b>New action in the system</b>\n\n"
+        f"Date: {datetime.now().strftime('%Y-%m-%d %H:%M')}\n"
+        f"User: {request.user.email}\n"
+        f"Action: creating a record"
     )
     send_admin_notification(admin_message)
 
-    # Формуєте повідомлення для користувача
-    user_message = f"Дякуємо за використання нашого сервісу! Ваш запит оброблено."
-    user_telegram_id = get_user_telegram_id(request.user)  # Ваша функція для отримання ID
+    # Format message for the user
+    user_message = f"Thank you for using our service! Your request has been processed."
+    user_telegram_id = get_user_telegram_id(request.user)  # Your function to get the ID
     if user_telegram_id:
         send_user_notification(user_telegram_id, user_message)
 
-    # Продовження вашого коду...
+    # Continue with your code...
 ```
 
-## Важливі моменти
+## Important Points
 
-1. **Формування повідомлень:** Ви повністю відповідаєте за формування тексту повідомлення. Це дає вам максимальну гнучкість в оформленні.
+1. **Message Formatting:** You are fully responsible for formatting the message text. This gives you maximum flexibility in presentation.
 
-2. **Обробка помилок:** Рекомендуємо обгортати виклик функції в try-except блок:
+2. **Error Handling:** We recommend wrapping the function call in a try-except block:
 
    ```python
    try:
        send_admin_notification(message)
    except Exception as e:
-       logger.error(f"Помилка при відправці сповіщення: {e}")
+       logger.error(f"Error sending notification: {e}")
    ```
 
-3. **HTML-форматування:** Telegram підтримує HTML-теги: `<b>`, `<i>`, `<u>`, `<s>`, `<a>`, `<code>`, `<pre>`. Ви можете використовувати їх у своїх повідомленнях.
+3. **HTML Formatting:** Telegram supports HTML tags: `<b>`, `<i>`, `<u>`, `<s>`, `<a>`, `<code>`, `<pre>`. You can use them in your messages.
 
-## Приклад з форматуванням HTML
+## Example with HTML Formatting
 
 ```python
 message = (
-    f"<b>Заголовок повідомлення</b>\n\n"
-    f"Перший рядок\n"
-    f"Другий рядок з <i>курсивом</i>\n"
-    f"<a href='https://example.com'>Посилання</a>"
+    f"<b>Message Title</b>\n\n"
+    f"First line\n"
+    f"Second line with <i>italics</i>\n"
+    f"<a href='https://example.com'>Link</a>"
 )
 send_admin_notification(message)
 ```
 
-## Шаблони для формування повідомлень
+## Templates for Message Formatting
 
-Для зручності ви можете використовувати шаблони з директорії `notifications/templates/`:
+For convenience, you can use templates from the `notifications/templates/` directory:
 
 ```python
-# Приклад формування повідомлення для оплати
+# Example of formatting a payment message
 def format_payment_message(payment):
     return (
-        f"💰 <b>Нова оплата отримана</b>\n\n"
-        f"🆔 ID оплати: {payment.id}\n"
-        f"👤 Користувач: {payment.user.email}\n"
-        f"💵 Сума: ${payment.amount}\n"
-        f"📅 Дата: {payment.date}\n"
-        f"✅ Статус: {payment.status}"
+        f"💰 <b>New payment received</b>\n\n"
+        f"🆔 Payment ID: {payment.id}\n"
+        f"👤 User: {payment.user.email}\n"
+        f"💵 Amount: ${payment.amount}\n"
+        f"📅 Date: {payment.date}\n"
+        f"✅ Status: {payment.status}"
     )
 
-# А потім використовуєте функцію відправки:
+# Then use the send function:
 send_admin_notification(format_payment_message(payment))
 ```
 
-## Приклади використання
+## Usage Examples
 
-Для детальніших прикладів дивіться файл `notifications/README.md`.
+For more detailed examples, see the `notifications/README.md` file.

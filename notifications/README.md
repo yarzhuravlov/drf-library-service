@@ -1,56 +1,56 @@
 # Notifications App
 
-Цей Django-додаток відповідає за генерацію та відправку сповіщень у системі.
-Він слугує як центральна точка для ініціації різноманітних сповіщень, які потім можуть бути оброблені різними сервісами (наприклад, Telegram ботом).
+This Django application is responsible for generating and sending notifications in the system.
+It serves as a central point for initiating various notifications that can then be processed by different services (for example, a Telegram bot).
 
-## Основні функції
+## Key Features
 
-- **Генерація сповіщень**: Формує повідомлення на основі подій у системі (наприклад, щоденні перевірки прострочених книг).
-- **Інтеграція з чергою повідомлень**: Надсилає сповіщення у чергу Redis, звідки їх можуть забирати інші воркери.
-- **Асинхронна відправка**: Можливість відправляти сповіщення асинхронно за допомогою Celery.
+- **Notification Generation**: Creates messages based on system events (for example, daily checks for overdue books).
+- **Message Queue Integration**: Sends notifications to a Redis queue, from which they can be retrieved by other workers.
+- **Asynchronous Sending**: Ability to send notifications asynchronously using Celery.
 
-## Як це працює
+## How It Works
 
-1.  Інші частини Django-проєкту (або заплановані завдання) викликають функції з `notifications.handlers`.
-2.  Хендлери формують повідомлення та передають його або напряму в Redis (для негайної обробки), або через Celery (для фонової обробки).
-3.  Повідомлення у черзі Redis має наступний JSON-формат (приклад):
+1.  Other parts of the Django project (or scheduled tasks) call functions from `notifications.handlers`.
+2.  Handlers format the message and pass it either directly to Redis (for immediate processing) or through Celery (for background processing).
+3.  Messages in the Redis queue have the following JSON format (example):
     ```json
     {
       "telegram_ids": [123456789, 987654321],
-      "text": "Текст вашого сповіщення"
+      "text": "Your notification text"
     }
     ```
 
-## Налаштування
+## Configuration
 
-Більшість налаштувань (Redis URL, назва черги) керуються централізовано через `config/settings.py` та відповідні змінні оточення у головному `.env` файлі проєкту.
+Most settings (Redis URL, queue name) are managed centrally through `config/settings.py` and the corresponding environment variables in the main `.env` file of the project.
 
-- `REDIS_HOST`, `REDIS_PORT`, `REDIS_DB`, `REDIS_PASSWORD`: Параметри підключення до Redis.
-- `CELERY_BROKER_URL`, `CELERY_RESULT_BACKEND`: Налаштування для Celery.
-- `NOTIFICATIONS_QUEUE`: Назва черги Redis, яка використовується для сповіщень.
-- `LOG_LEVEL_NOTIFICATIONS`: Рівень логування для цього додатку.
+- `REDIS_HOST`, `REDIS_PORT`, `REDIS_DB`, `REDIS_PASSWORD`: Redis connection parameters.
+- `CELERY_BROKER_URL`, `CELERY_RESULT_BACKEND`: Celery settings.
+- `NOTIFICATIONS_QUEUE`: The name of the Redis queue used for notifications.
+- `LOG_LEVEL_NOTIFICATIONS`: Logging level for this application.
 
-## Використання для різних модулів
+## Usage for Different Modules
 
-### Загальне використання
+### General Usage
 
-Для відправки сповіщення з будь-якої частини Django-проєкту:
+To send a notification from any part of the Django project:
 
 ```python
 from notifications.handlers import send_telegram_notification_django
 
-# Приклад відправки (припускаємо, що telegram_ids - це список ID чатів/користувачів)
+# Example of sending (assuming telegram_ids is a list of chat/user IDs)
 user_telegram_ids = [123456789]
-message_text = "Ваше замовлення оновлено!"
+message_text = "Your order has been updated!"
 
-# Відправка через Celery (рекомендовано для більшості випадків)
+# Sending via Celery (recommended for most cases)
 send_telegram_notification_django(
     telegram_ids=user_telegram_ids,
     text=message_text,
     use_celery=True
 )
 
-# Відправка напряму в Redis (якщо Celery не налаштований або для специфічних випадків)
+# Sending directly to Redis (if Celery is not configured or for specific cases)
 send_telegram_notification_django(
     telegram_ids=user_telegram_ids,
     text=message_text,
@@ -58,26 +58,26 @@ send_telegram_notification_django(
 )
 ```
 
-### Для модуля Borrowings (позичання)
+### For the Borrowings Module
 
-Вже реалізовані функції:
+Already implemented functions:
 
 ```python
 from notifications.handlers import notify_new_borrowing, notify_book_returned
 from borrowings.models import Borrowing
 
-# Коли користувач створює нове позичання:
+# When a user creates a new borrowing:
 borrowing = Borrowing.objects.get(id=1)
 notify_new_borrowing(borrowing)
 
-# Коли книга повертається:
+# When a book is returned:
 borrowing = Borrowing.objects.get(id=1)
 notify_book_returned(borrowing)
 ```
 
-### Для модуля Payments (оплати)
+### For the Payments Module
 
-Приклад інтеграції для модуля оплат:
+Example integration for the payments module:
 
 ```python
 from notifications.handlers import send_telegram_notification_django
@@ -85,42 +85,42 @@ from django.conf import settings
 
 def notify_payment_received(payment):
     """
-    Відправляє сповіщення про отримання оплати
+    Sends a notification about payment receipt
 
     Args:
-        payment: Об'єкт Payment з інформацією про оплату
+        payment: Payment object with payment information
 
     Returns:
-        bool: Результат надсилання повідомлення
+        bool: Result of sending the message
     """
     try:
-        # Отримуємо ID адміністраторів з налаштувань
+        # Get admin IDs from settings
         admin_chat_id = getattr(settings, "TELEGRAM_ADMIN_CHAT_ID", None)
 
         if not admin_chat_id:
             return False
 
-        # Формуємо HTML-повідомлення
+        # Format HTML message
         message = (
-            f"💰 <b>Нова оплата отримана</b>\n\n"
-            f"🆔 ID оплати: {payment.id}\n"
-            f"👤 Користувач: {payment.user.email}\n"
-            f"📚 Позичання: {payment.borrowing.book.title}\n"
-            f"💵 Сума: ${payment.amount}\n"
-            f"📅 Дата: {payment.date}\n"
-            f"✅ Статус: {payment.status}"
+            f"💰 <b>New payment received</b>\n\n"
+            f"🆔 Payment ID: {payment.id}\n"
+            f"👤 User: {payment.user.email}\n"
+            f"📚 Borrowing: {payment.borrowing.book.title}\n"
+            f"💵 Amount: ${payment.amount}\n"
+            f"📅 Date: {payment.date}\n"
+            f"✅ Status: {payment.status}"
         )
 
-        # Надсилаємо повідомлення
+        # Send message
         return send_telegram_notification_django([admin_chat_id], message)
     except Exception as e:
-        # Логування помилки
+        # Log error
         return False
 ```
 
-### Для модуля Accounts (користувачі)
+### For the Accounts Module
 
-Ось приклад для сповіщень про нових користувачів:
+Here's an example for notifications about new users:
 
 ```python
 from notifications.handlers import send_telegram_notification_django
@@ -128,13 +128,13 @@ from django.conf import settings
 
 def notify_new_user_registered(user):
     """
-    Відправляє сповіщення про реєстрацію нового користувача
+    Sends a notification about a new user registration
 
     Args:
-        user: Об'єкт користувача, який щойно зареєструвався
+        user: User object who just registered
 
     Returns:
-        bool: Результат надсилання повідомлення
+        bool: Result of sending the message
     """
     try:
         admin_chat_id = getattr(settings, "TELEGRAM_ADMIN_CHAT_ID", None)
@@ -143,10 +143,10 @@ def notify_new_user_registered(user):
             return False
 
         message = (
-            f"👤 <b>Новий користувач зареєструвався</b>\n\n"
+            f"👤 <b>New user registered</b>\n\n"
             f"📧 Email: {user.email}\n"
-            f"👤 Ім'я: {user.username}\n"
-            f"📅 Дата реєстрації: {user.date_joined.strftime('%Y-%m-%d %H:%M')}"
+            f"👤 Name: {user.username}\n"
+            f"📅 Registration date: {user.date_joined.strftime('%Y-%m-%d %H:%M')}"
         )
 
         return send_telegram_notification_django([admin_chat_id], message)
@@ -154,15 +154,15 @@ def notify_new_user_registered(user):
         return False
 ```
 
-## Створення власних обробників сповіщень
+## Creating Custom Notification Handlers
 
-Щоб додати власний обробник сповіщень для свого модуля, рекомендується:
+To add your own notification handler for your module, it's recommended to:
 
-1. Створіть файл `notifications.py` у своєму додатку
-2. Додайте функції для генерації необхідних повідомлень
-3. Викликайте ці функції з відповідних місць вашого коду
+1. Create a `notifications.py` file in your app
+2. Add functions for generating necessary messages
+3. Call these functions from the appropriate places in your code
 
-**Приклад структури файлу для модуля оплат**:
+**Example structure for the payments module**:
 
 ```python
 # payments/notifications.py
@@ -170,17 +170,17 @@ from notifications.handlers import send_telegram_notification_django
 from django.conf import settings
 
 def notify_payment_received(payment):
-    # Код вашого обробника...
+    # Your handler code...
     pass
 
 def notify_payment_failed(payment, error_message):
-    # Код вашого обробника...
+    # Your handler code...
     pass
 ```
 
-## Тестування
+## Testing
 
-Для запуску тестів, специфічних для цього додатку, виконайте команду з кореневої директорії проєкту:
+To run tests specific to this app, execute the following command from the project root directory:
 
 ```bash
 python manage.py test notifications

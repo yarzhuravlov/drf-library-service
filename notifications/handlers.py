@@ -10,7 +10,7 @@ from notifications.models import TelegramUser
 
 User = get_user_model()
 
-# Налаштування логування
+# Logging configuration
 LOG_LEVEL_NOTIFICATIONS = getattr(settings, "LOG_LEVEL_NOTIFICATIONS", "INFO")
 logging.basicConfig(
     level=getattr(logging, LOG_LEVEL_NOTIFICATIONS),
@@ -21,10 +21,10 @@ logger = logging.getLogger(__name__)
 
 def get_redis_connection() -> redis.Redis:
     """
-    Отримує з'єднання з Redis, використовуючи налаштування django.conf.settings
+    Gets a connection to Redis using django.conf.settings
 
     Returns:
-        redis.Redis: клієнт Redis
+        redis.Redis: Redis client
     """
     redis_host = getattr(settings, "REDIS_HOST", "localhost")
     redis_port = getattr(settings, "REDIS_PORT", 6379)
@@ -38,7 +38,7 @@ def get_redis_connection() -> redis.Redis:
         "decode_responses": True,
     }
 
-    # Додаємо пароль тільки якщо він заданий і не пустий
+    # Only add password if it's set and not empty
     if redis_password and redis_password.strip():
         connection_params["password"] = redis_password
 
@@ -49,37 +49,37 @@ def send_notification_redis(
     telegram_ids: List[Union[int, str]], text: str
 ) -> bool:
     """
-    Надсилає повідомлення через Redis
+    Sends a message through Redis
 
     Args:
-        telegram_ids (list): Список ID в Telegram
-        text (str): Текст повідомлення
+        telegram_ids (list): List of Telegram IDs
+        text (str): Message text
 
     Returns:
-        bool: True якщо повідомлення відправлено в чергу, False - помилка
+        bool: True if the message was sent to the queue, False if error
     """
     if not telegram_ids or not text:
-        logger.error("telegram_ids та text мають бути непустими")
+        logger.error("telegram_ids and text must be non-empty")
         return False
 
     try:
         message = {"telegram_ids": telegram_ids, "text": text}
         r = get_redis_connection()
 
-        # Назву черги беремо з django settings
+        # Get queue name from django settings
         notifications_queue_name = getattr(
             settings, "NOTIFICATIONS_QUEUE", "notifications"
         )
 
         r.rpush(notifications_queue_name, json.dumps(message))
         logger.info(
-            f"Повідомлення успішно додано в чергу "
-            f"'{notifications_queue_name}' для "
-            f"{len(telegram_ids)} отримувачів"
+            f"Message successfully added to queue "
+            f"'{notifications_queue_name}' for "
+            f"{len(telegram_ids)} recipients"
         )
         return True
     except Exception as e:
-        logger.error(f"Помилка при публікації повідомлення в Redis: {e}")
+        logger.error(f"Error publishing message to Redis: {e}")
         return False
 
 
@@ -87,20 +87,19 @@ def send_telegram_notification_django(
     telegram_ids: List[Union[int, str]], text: str, use_celery: bool = True
 ) -> bool:
     """
-    Функція для відправки Telegram сповіщень з Django
+    Function for sending Telegram notifications from Django
 
     Args:
-        telegram_ids (list): Список ID отримувачів в Telegram
-        text (str): Текст повідомлення
-        use_celery (bool): Використовувати Celery (True)
-                           або безпосередньо Redis (False)
+        telegram_ids (list): List of recipient IDs in Telegram
+        text (str): Message text
+        use_celery (bool): Use Celery (True) or Redis directly (False)
 
     Returns:
-        bool: True якщо повідомлення відправлено, False в іншому випадку
+        bool: True if the message was sent, False otherwise
     """
     try:
         if use_celery:
-            # Імпортуємо тут, щоб уникнути циклічних залежностей
+            # Import here to avoid circular dependencies
             from notifications.tasks import send_notification_celery
 
             send_notification_celery.delay(telegram_ids, text)
@@ -108,37 +107,35 @@ def send_telegram_notification_django(
             return send_notification_redis(telegram_ids, text)
         return True
     except Exception as e:
-        logger.error(f"Помилка при відправці Telegram сповіщення: {e}")
+        logger.error(f"Error sending Telegram notification: {e}")
         return False
 
 
 def send_admin_notification(message: str, use_celery: bool = True) -> bool:
     """
-    Надсилає повідомлення адміністраторам системи
+    Sends a message to system administrators
 
     Args:
-        message (str): Текст повідомлення
-        use_celery (bool): Використовувати Celery (True) або безпосередньо Redis (False)
+        message (str): Message text
+        use_celery (bool): Use Celery
 
     Returns:
-        bool: True якщо повідомлення відправлено, False в іншому випадку
+        bool: True if the message was sent, False otherwise
     """
     try:
-        # Отримуємо ID адміністраторів з налаштувань
+        # Get admin IDs from settings
         admin_chat_id = getattr(settings, "TELEGRAM_ADMIN_CHAT_ID", None)
 
         if not admin_chat_id:
-            logger.error("TELEGRAM_ADMIN_CHAT_ID не налаштовано в settings")
+            logger.error("TELEGRAM_ADMIN_CHAT_ID not configured in settings")
             return False
 
-        # Надсилаємо повідомлення
+        # Send message
         return send_telegram_notification_django(
             [admin_chat_id], message, use_celery
         )
     except Exception as e:
-        logger.error(
-            f"Помилка при відправці повідомлення адміністраторам: {e}"
-        )
+        logger.error(f"Error sending message to administrators: {e}")
         return False
 
 
@@ -146,14 +143,14 @@ def send_notification_to_all_admin_users(
     message: str, use_celery: bool = True
 ) -> bool:
     """
-    Надсилає повідомлення всім адміністраторам, які мають Telegram ID
+    Sends a message to all administrators who have a Telegram ID
 
     Args:
-        message (str): Текст повідомлення
-        use_celery (bool): Використовувати Celery (True) або безпосередньо Redis (False)
+        message (str): Message text
+        use_celery (bool): Use Celery
 
     Returns:
-        bool: True якщо повідомлення відправлено, False в іншому випадку
+        bool: True if the message was sent, False otherwise
     """
     try:
         admin_telegram_ids = list(
@@ -163,15 +160,13 @@ def send_notification_to_all_admin_users(
             )
         )
         if not admin_telegram_ids:
-            logger.warning("Жодного адміністратора з Telegram ID не знайдено!")
+            logger.warning("No administrators with Telegram ID found!")
             return False
         return send_telegram_notification_django(
             admin_telegram_ids, message, use_celery
         )
     except Exception as e:
-        logger.error(
-            f"Помилка при надсиланні повідомлення всім адміністраторам: {e}"
-        )
+        logger.error(f"Error sending message to all administrators: {e}")
         return False
 
 
@@ -179,27 +174,27 @@ def send_user_notification(
     user_telegram_id: Union[int, str], message: str, use_celery: bool = True
 ) -> bool:
     """
-    Надсилає повідомлення конкретному користувачу за його Telegram ID
+    Sends a message to a specific user by their Telegram ID
 
     Args:
-        user_telegram_id (int, str): ID користувача в Telegram
-        message (str): Текст повідомлення
-        use_celery (bool): Використовувати Celery (True) або безпосередньо Redis (False)
+        user_telegram_id (int, str): User's Telegram ID
+        message (str): Message text
+        use_celery (bool): Use Celery
 
     Returns:
-        bool: True якщо повідомлення відправлено, False в іншому випадку
+        bool: True if the message was sent, False otherwise
     """
     if not user_telegram_id:
-        logger.error("ID користувача в Telegram не вказано")
+        logger.error("User's Telegram ID not specified")
         return False
 
     try:
-        # Надсилаємо повідомлення
+        # Send message
         return send_telegram_notification_django(
             [user_telegram_id], message, use_celery
         )
     except Exception as e:
-        logger.error(f"Помилка при відправці повідомлення користувачу: {e}")
+        logger.error(f"Error sending message to user: {e}")
         return False
 
 
@@ -207,19 +202,19 @@ def send_notification_to_user(
     user: User, message: str, use_celery: bool = True
 ) -> bool:
     """
-    Надсилає повідомлення користувачу Django за його обліковим записом
+    Sends a message to a Django user by their account
 
     Args:
-        user (User): Об'єкт користувача Django
-        message (str): Текст повідомлення
-        use_celery (bool): Використовувати Celery (True) або безпосередньо Redis (False)
+        user (User): Django user object
+        message (str): Message text
+        use_celery (bool): Use Celery
 
     Returns:
-        bool: True якщо повідомлення відправлено, False в іншому випадку
+        bool: True if the message was sent, False otherwise
     """
     try:
         user_id = TelegramUser.objects.get(user=user).telegram_id
         return send_user_notification(user_id, message, use_celery)
     except TelegramUser.DoesNotExist:
-        logger.error(f"User {user} не має прив'язаного Telegram акаунта!")
+        logger.error(f"User {user} doesn't have a linked Telegram account!")
         return False
