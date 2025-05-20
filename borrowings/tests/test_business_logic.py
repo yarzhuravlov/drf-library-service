@@ -1,3 +1,5 @@
+from unittest.mock import patch, MagicMock
+
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient
@@ -46,7 +48,10 @@ class BorrowingBusinessLogicTests(TestCase):
         self.assertIn("book", response.data)
         self.assertIn("not available", response.data["book"][0].lower())
 
-    def test_inventory_decreases_on_borrow(self):
+    @patch("payments.services.create_payment")
+    def test_inventory_decreases_on_borrow(self, mock_create_payment):
+        mock_create_payment.return_value = MagicMock(id="mock_payment_id")
+
         self.client.force_authenticate(user=self.user)
         response = self.client.post(
             self.borrowing_list_url,

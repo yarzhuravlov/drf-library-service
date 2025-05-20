@@ -1,3 +1,5 @@
+from unittest.mock import patch, MagicMock
+
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient
@@ -65,7 +67,11 @@ class BorrowingPendingPaymentTests(TestCase):
         self.book.refresh_from_db()
         self.assertEqual(self.book.inventory, 1)
 
-    def test_can_borrow_without_pending_payments(self):
+
+    @patch("payments.services.create_payment")
+    def test_can_borrow_without_pending_payments(self, mock_create_payment):
+        mock_create_payment.return_value = MagicMock(id="mocked_payment_id")
+
         self.client.force_authenticate(user=self.user_no_pending_payment)
         self.assertFalse(
             Payment.objects.filter(

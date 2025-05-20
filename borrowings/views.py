@@ -84,6 +84,5 @@ class BorrowingViewSet(viewsets.ModelViewSet):
 
         with transaction.atomic():
             borrowing = serializer.save(user=user)
-            payment = create_payment(borrowing, self.request)
-            print(payment)
+            create_payment(borrowing, self.request)
         return borrowing
