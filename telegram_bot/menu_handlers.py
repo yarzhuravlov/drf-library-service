@@ -6,6 +6,7 @@ from aiogram.fsm.context import FSMContext
 import requests
 from telegram_bot.config import API_BASE_URL
 from telegram_bot.auth_handlers import get_valid_access_token
+from telegram_bot.request_service import get_user_borrowings
 
 logger = logging.getLogger(__name__)
 router = Router()
@@ -63,18 +64,9 @@ async def books_button(message: types.Message, state: FSMContext):
 
 @router.message(F.text == "📋 Мої оренди")
 async def borrowings_button(message: types.Message, state: FSMContext):
-    # Отримуємо валідний токен з можливим автооновленням
-    access_token = await get_valid_access_token(state)
-    if not access_token:
-        await message.answer("Спочатку увійдіть через /login")
-        return
-
-    # Показуємо список орендованих книг користувача
-    headers = {"Authorization": f"Bearer {access_token}"}
     try:
-        resp = requests.get(
-            f"{API_BASE_URL}borrowings/", headers=headers, timeout=10
-        )
+        data = await state.get_data()
+        resp = get_user_borrowings(data.get("user_id"))
         if resp.status_code == 200:
             borrowings = resp.json()
             if not borrowings:
@@ -82,7 +74,7 @@ async def borrowings_button(message: types.Message, state: FSMContext):
                 return
             text = "\n".join(
                 [
-                    f"{b['id']}. {b['book']} {b['borrow_date']} — {b['expected_return_date']}"
+                    f"{b['id']}. {b['book']} {b['borrow_date']} — {b['expected_return']}"
                     for b in borrowings
                 ]
             )

@@ -6,6 +6,8 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from telegram_bot.config import API_BASE_URL
 import requests
 
+from telegram_bot.request_service import inject_service_auth_headers
+
 logger = logging.getLogger(__name__)
 router = Router()
 
@@ -13,14 +15,10 @@ router = Router()
 @router.message(Command("profile"))
 async def profile(message: types.Message, state: FSMContext):
     data = await state.get_data()
-    access_token = data.get("access_token")
-    if not access_token:
-        await message.answer("/login")
-        return
-    headers = {"Authorization": f"Bearer {access_token}"}
+    user_id = data["user_id"]
     try:
         resp = requests.get(
-            f"{API_BASE_URL}users/me/", headers=headers, timeout=10
+            f"{API_BASE_URL}auth/users/me/", headers=inject_service_auth_headers(user_id), timeout=10
         )
         if resp.status_code == 200:
             u = resp.json()

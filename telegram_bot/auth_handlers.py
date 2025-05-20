@@ -1,4 +1,6 @@
 import logging
+import os
+
 from aiogram import Router, F, types
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
@@ -6,20 +8,11 @@ from aiogram.filters import Command
 from telegram_bot.config import API_BASE_URL
 import requests
 
+from telegram_bot.request_service import get_me
+
 logger = logging.getLogger(__name__)
 router = Router()
 
-
-url = 'https://example.com/api'
-headers = {
-    'Authorization': 'Bearer YOUR_TOKEN_HERE',
-    'Content-Type': 'application/json',
-    'Custom-Header': 'custom-value'
-}
-
-response = requests.get(url, headers=headers)
-
-# async def get_me(access_token)
 
 class AuthStates(StatesGroup):
     waiting_for_email = State()
@@ -67,6 +60,12 @@ async def get_password(message: types.Message, state: FSMContext):
                 access_token=access_token, refresh_token=refresh_token
             )
             await state.set_state(None)
+
+            user = get_me(access_token)
+            await state.update_data(
+                user_id=user["id"]
+            )
+
             await message.answer("✅ Успішний вхід!")
         elif resp.status_code == 200 and "access" in response_data:
             access_token = response_data["access"]
