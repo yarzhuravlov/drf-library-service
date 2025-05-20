@@ -38,8 +38,8 @@ urlpatterns = [
 
     path("api/v1/books/", include("books.urls")),
     path("api/v1/", include("borrowings.urls")),
-    path("api/v1/", include("payments.urls")),
-    path("api/v1/", include("notifications.urls")),
+    path("api/v1/payments/", include("payments.urls")),
+    path("api/v1/notifications/", include("notifications.urls")),
 
     path(
         "api/schema/",

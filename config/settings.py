@@ -282,3 +282,29 @@ if TELEGRAM_BOT_SERVICE_SECRET := os.environ.get(
     "TELEGRAM_BOT_SERVICE_SECRET"
 ):
     SERVICE_SECRETS.append(TELEGRAM_BOT_SERVICE_SECRET)
+
+# ==============================================================================
+# НАЛАШТУВАННЯ STRIPE
+# ==============================================================================
+STRIPE_PUBLISHABLE_KEY = os.environ.get(
+    "STRIPE_PUBLISHABLE_KEY",
+    "pk_test_your_publishable_key_here"
+)
+STRIPE_SECRET_KEY = os.environ.get(
+    "STRIPE_SECRET_KEY",
+    "sk_test_your_secret_key_here"
+)
+STRIPE_WEBHOOK_SECRET = os.environ.get(
+    "STRIPE_WEBHOOK_SECRET",
+    "whsec_your_webhook_secret_here"
+)
+DEFAULT_CURRENCY = os.environ.get("DEFAULT_CURRENCY", "usd")
+EXPIRATION_MINUTES = int(os.environ.get("EXPIRATION_MINUTES", "30"))
+FINE_MULTIPLIER = os.environ.get("FINE_MULTIPLIER", "0.3")
+
+if not all([STRIPE_PUBLISHABLE_KEY, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET]):
+    raise ValueError(
+        "Stripe settings are not configured. "
+        "Please set STRIPE_PUBLISHABLE_KEY, STRIPE_SECRET_KEY, "
+        "and STRIPE_WEBHOOK_SECRET in your environment."
+    )
