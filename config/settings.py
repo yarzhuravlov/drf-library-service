@@ -27,7 +27,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ.get(
     "SECRET_KEY",
-    "django-insecure-lah*ka-k_1sfu4%u)=f1po_p2_uur77ylab3u3lk7my+d+1-=d"
+    "django-insecure-lah*ka-k_1sfu4%u)=f1po_p2_uur77ylab3u3lk7my+d+1-=d",
 )
 
 # SECURITY WARNING: don't run with debug turned on in production!
@@ -179,6 +179,7 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "base.authentication.ServiceWithUserAuthentication",
     ],
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
@@ -276,3 +277,10 @@ TELEGRAM_BOT_TOKEN = (
     or os.getenv("TELEGRAM_TOKEN")
 )
 LOG_LEVEL_TELEGRAM_BOT = os.getenv("LOG_LEVEL_TELEGRAM_BOT", "INFO")
+
+SERVICE_SECRETS = []
+
+if TELEGRAM_BOT_SERVICE_SECRET := os.environ.get(
+    "TELEGRAM_BOT_SERVICE_SECRET"
+):
+    SERVICE_SECRETS.append(TELEGRAM_BOT_SERVICE_SECRET)
