@@ -12,6 +12,7 @@ from payments.services import (
     update_payment_by_session_id,
     renew_payment_session,
 )
+from payments.utils import send_telegram_message
 
 
 class PaymentViewSet(
@@ -59,6 +60,18 @@ class PaymentViewSet(
         payment = update_payment_by_session_id(session_id)
 
         if payment:
+            message = (
+                f"💰 <b>Success</b>\n"
+                f"ID: {payment.id}\n"
+                f"Amount: {payment.money_to_pay}\n"
+                f"User: {payment.borrowing.user.email}\n"
+                f"Date: {payment.borrowing.borrow_date.strftime('%Y-%m-%d')}"
+            )
+            try:
+                send_telegram_message(message)
+            except Exception as e:
+                print(f"Failed to send Telegram message: {e}")
+
             return Response("Payment status changed to PAID")
 
         return Response(
