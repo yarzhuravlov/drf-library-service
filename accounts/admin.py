@@ -5,6 +5,9 @@ from accounts.models import User
 
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
+
+    readonly_fields = ("last_login", "created_at", "updated_at")
+
     fieldsets = (
         (
             None,
