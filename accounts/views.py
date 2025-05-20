@@ -15,14 +15,23 @@ def activate_user(request, uid, token):
         # Simulate a POST request to Djoser's activation endpoint
         factory = APIRequestFactory()
         post_request = factory.post(
-            "/api/v1/auth/users/activation/", {"uid": uid, "token": token}, format="json"
+            "/api/v1/auth/users/activation/",
+            {"uid": uid, "token": token},
+            format="json"
         )
         view = UserViewSet.as_view({"post": "activation"})
         response = view(post_request)
         if response.status_code == status.HTTP_204_NO_CONTENT:
-            return HttpResponse("Your account has been activated! You can now log in.", status=200)
+            return HttpResponse(
+                "Your account has been activated! You can now log in.",
+                status=200
+            )
         else:
-            return HttpResponse("Activation failed. The link is invalid or has already been used.", status=400)
+            return HttpResponse(
+                "Activation failed. "
+                "The link is invalid or has already been used.",
+                status=400
+            )
     return HttpResponse("Method not allowed", status=405)
 
 
