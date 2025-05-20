@@ -1,3 +1,4 @@
+from django.utils.timezone import localdate, now
 from rest_framework import serializers
 
 from books.serializers import BookSerializer
@@ -54,3 +55,21 @@ class BorrowingRetrieveSerializer(BorrowingSerializer):
             "expected_return",
             "actual_return",
         )
+
+
+class BorrowingReturnSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Borrowing
+        fields = ()
+
+    def validate(self, data):
+        if self.instance.actual_return:
+            raise serializers.ValidationError("This borrowing is already returned.")
+        return data
+
+    def update(self, instance, validated_data):
+        instance.actual_return = localdate()
+        instance.book.inventory += 1
+        instance.book.save()
+        instance.save()
+        return instance
