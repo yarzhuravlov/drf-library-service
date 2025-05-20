@@ -6,32 +6,39 @@ import stripe
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework.request import Request
+from django.conf import settings
 
 from borrowings.models import Borrowing
 from payments.models import Payment
 
-stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
-currency = os.environ.get("DEFAULT_CURRENCY", "usd")
-expiration_minutes = int(os.environ.get("EXPIRATION_MINUTES", "30"))
-fine_multiplier = os.environ.get("FINE_MULTIPLIER", "0.3")
+stripe.api_key = settings.STRIPE_SECRET_KEY
+currency = settings.DEFAULT_CURRENCY
+expiration_minutes = settings.EXPIRATION_MINUTES
+fine_multiplier = settings.FINE_MULTIPLIER
+MIN_AMOUNT = 50  # Stripe minimum amount in cents
 
 
-def calc_borrowing_total_price(borrowing: Borrowing):
+def calc_borrowing_total_price(borrowing: Borrowing) -> int:
+    """Calculate total price for borrowing in cents.
+    Ensures the minimum amount is at least 50 cents."""
     borrowing_period = (borrowing.expected_return - borrowing.borrow_date).days
-    return borrowing_period * borrowing.book.daily_fee
+    amount = borrowing_period * borrowing.book.daily_fee * 100  # Convert to cents
+    return max(amount, MIN_AMOUNT)
 
 
 def calc_borrowing_fine_price(
     borrowing: Borrowing,
     fine_multiplier: str = fine_multiplier,
-):
+) -> int:
+    """Calculate fine price for overdue borrowing in cents.
+    Ensures the minimum amount is at least 50 cents."""
     overdue_days = (borrowing.actual_return - borrowing.expected_return).days
     fine = overdue_days * int(
         (
             str(Decimal(borrowing.book.daily_fee) * Decimal(fine_multiplier))
         ).split(".")[0]
-    )
-    return fine
+    ) * 100  # Convert to cents
+    return max(fine, MIN_AMOUNT)
 
 
 def create_stripe_session(
@@ -39,6 +46,7 @@ def create_stripe_session(
     borrowing_total_price: int,
     request: Request,
 ) -> stripe.checkout.Session:
+    expiration_at = timezone.now() + timedelta(minutes=expiration_minutes)
     session = stripe.checkout.Session.create(
         line_items=[
             {
@@ -61,11 +69,7 @@ def create_stripe_session(
             reverse("payments:payment-cancel")
         ),
         metadata={"borrowing_id": borrowing.id},
-        expires_at=int(
-            (
-                timezone.now() + timedelta(minutes=expiration_minutes)
-            ).timestamp()
-        ),
+        expires_at=int(expiration_at.timestamp()),
         customer_email=borrowing.user.email,
     )
 
@@ -82,6 +86,7 @@ def create_payment(borrowing: Borrowing, request: Request) -> Payment:
         session_id=session.id,
         money_to_pay=borrowing_total_price,
         type=Payment.Types.PAYMENT,
+        expiration_at=timezone.now() + timedelta(minutes=expiration_minutes),
     )
     return payment
 
@@ -96,6 +101,7 @@ def create_fine_payment(borrowing: Borrowing, request: Request):
         session_id=session.id,
         money_to_pay=fine,
         type=Payment.Types.FINE,
+        expiration_at=timezone.now() + timedelta(minutes=expiration_minutes),
     )
 
     return payment
@@ -104,7 +110,7 @@ def create_fine_payment(borrowing: Borrowing, request: Request):
 def update_payment_by_session_id(session_id: str):
     try:
         session = stripe.checkout.Session.retrieve(session_id)
-    except stripe._error.InvalidRequestError:
+    except stripe.error.InvalidRequestError:
         return None
 
     if session.payment_status == "paid":
@@ -112,7 +118,7 @@ def update_payment_by_session_id(session_id: str):
         payment.status = Payment.Statuses.PAID
         payment.save()
 
-        return Payment
+        return payment
 
     return None
 
@@ -131,6 +137,9 @@ def renew_payment_session(payment: Payment, request: Request) -> Payment:
     payment.session_url = session.url
     payment.session_id = session.id
     payment.status = Payment.Statuses.PENDING
+    payment.expiration_at = (
+        timezone.now() + timedelta(minutes=expiration_minutes)
+    )
     payment.save()
 
     return payment

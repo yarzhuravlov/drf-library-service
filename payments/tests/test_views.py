@@ -245,6 +245,102 @@ class PaymentViewSetTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data, "Payment can be completed later")
 
+    @patch("payments.views.create_payment")
+    def test_create_for_borrowing_success(self, mock_create):
+        """Test creating a payment for a borrowing successfully"""
+        self.client.force_authenticate(user=self.regular_user)
+        # Delete existing payment first to avoid unique constraint
+        Payment.objects.filter(borrowing=self.borrowing_user).delete()
+        
+        mock_create.return_value = self.payment_user
+        url = reverse(
+            "payments:payment-create-for-borrowing",
+            args=[self.borrowing_user.id]
+        )
+        response = self.client.post(url)
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        mock_create.assert_called_once()  # Just check if it was called once
+        self.assertEqual(response.data["id"], self.payment_user.id)
+
+    def test_create_for_borrowing_not_found(self):
+        """Test creating a payment for non-existent borrowing"""
+        self.client.force_authenticate(user=self.regular_user)
+        url = reverse(
+            "payments:payment-create-for-borrowing",
+            args=[99999]
+        )
+        response = self.client.post(url)
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_create_for_borrowing_unauthorized(self):
+        """Test creating a payment for another user's borrowing"""
+        self.client.force_authenticate(user=self.regular_user)
+        other_user = get_user_model().objects.create_user(
+            email="other@test.com",
+            password="testpass123"
+        )
+        other_borrowing = Borrowing.objects.create(
+            user=other_user,
+            book=self.book,
+            borrow_date="2024-01-01",
+            expected_return="2024-12-31"
+        )
+        url = reverse(
+            "payments:payment-create-for-borrowing",
+            args=[other_borrowing.id]
+        )
+        response = self.client.post(url)
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_create_for_borrowing_already_paid(self):
+        """Test creating a payment for already paid borrowing"""
+        self.client.force_authenticate(user=self.regular_user)
+        # Delete existing payment first to avoid unique constraint
+        Payment.objects.filter(borrowing=self.borrowing_user).delete()
+        
+        payment = Payment.objects.create(
+            borrowing=self.borrowing_user,
+            status=Payment.Statuses.PAID,
+            type=Payment.Types.PAYMENT,
+            session_url="https://test2.com",
+            session_id="test_session_id2",
+            money_to_pay=15.00
+        )
+        url = reverse(
+            "payments:payment-create-for-borrowing",
+            args=[self.borrowing_user.id]
+        )
+        response = self.client.post(url)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(
+            response.data["detail"],
+            "Payment already completed for this borrowing"
+        )
+
+    def test_create_for_borrowing_pending_exists(self):
+        """Test creating a payment when pending payment exists"""
+        self.client.force_authenticate(user=self.regular_user)
+        # Delete existing payment first to avoid unique constraint
+        Payment.objects.filter(borrowing=self.borrowing_user).delete()
+        
+        payment = Payment.objects.create(
+            borrowing=self.borrowing_user,
+            status=Payment.Statuses.PENDING,
+            type=Payment.Types.PAYMENT,
+            session_url="https://test2.com",
+            session_id="test_session_id2",
+            money_to_pay=15.00
+        )
+        url = reverse(
+            "payments:payment-create-for-borrowing",
+            args=[self.borrowing_user.id]
+        )
+        response = self.client.post(url)
+
 
 class TestRenewPaymentView(TestCase):
     def setUp(self):
