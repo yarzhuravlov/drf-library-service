@@ -104,7 +104,7 @@ def create_fine_payment(borrowing: Borrowing, request: Request):
 def update_payment_by_session_id(session_id: str):
     try:
         session = stripe.checkout.Session.retrieve(session_id)
-    except stripe._error.InvalidRequestError:
+    except stripe.error.InvalidRequestError:
         return None
 
     if session.payment_status == "paid":
@@ -112,7 +112,7 @@ def update_payment_by_session_id(session_id: str):
         payment.status = Payment.Statuses.PAID
         payment.save()
 
-        return Payment
+        return payment
 
     return None
 
