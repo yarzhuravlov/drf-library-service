@@ -28,7 +28,9 @@ class BorrowingFiltersTests(TestCase):
             password="userpass2",
         )
 
-        self.author = Author.objects.create(first_name="Test", last_name="Author")
+        self.author = Author.objects.create(
+            first_name="Test", last_name="Author"
+        )
         self.book = Book.objects.create(
             title="Sample Book",
             cover=Book.Covers.HARD,
@@ -71,7 +73,9 @@ class BorrowingFiltersTests(TestCase):
 
     def test_filter_is_active_false(self):
         self.client.force_authenticate(user=self.user1)
-        response = self.client.get(self.borrowing_list_url + "?is_active=false")
+        response = self.client.get(
+            self.borrowing_list_url + "?is_active=false"
+        )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 1)
@@ -79,14 +83,18 @@ class BorrowingFiltersTests(TestCase):
 
     def test_admin_filter_by_user_id(self):
         self.client.force_authenticate(user=self.staff_user)
-        response = self.client.get(self.borrowing_list_url + f"?user_id={self.user1.id}")
+        response = self.client.get(
+            self.borrowing_list_url + f"?user_id={self.user1.id}"
+        )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 2)
 
     def test_regular_user_ignores_user_id(self):
         self.client.force_authenticate(user=self.user1)
-        response = self.client.get(self.borrowing_list_url + f"?user_id={self.user2.id}")
+        response = self.client.get(
+            self.borrowing_list_url + f"?user_id={self.user2.id}"
+        )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 2)

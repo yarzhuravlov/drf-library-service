@@ -13,8 +13,12 @@ class BorrowingBusinessLogicTests(TestCase):
     def setUp(self):
         self.client = APIClient()
 
-        self.user = User.objects.create_user(email="user@example.com", password="userpass")
-        self.author = Author.objects.create(first_name="Test", last_name="Author")
+        self.user = User.objects.create_user(
+            email="user@example.com", password="userpass"
+        )
+        self.author = Author.objects.create(
+            first_name="Test", last_name="Author"
+        )
         self.book = Book.objects.create(
             title="Sample Book",
             cover=Book.Covers.HARD,
