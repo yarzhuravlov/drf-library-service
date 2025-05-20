@@ -17,18 +17,18 @@ class PaymentViewSetTests(TestCase):
 
         # Create users
         self.staff_user = get_user_model().objects.create_user(
-            username="staff@example.com",
+            email="staff@example.com",
             password="testpassword",
             is_staff=True,
         )
 
         self.regular_user = get_user_model().objects.create_user(
-            username="user@example.com",
+            email="user@example.com",
             password="testpassword",
         )
 
         self.another_user = get_user_model().objects.create_user(
-            username="another@example.com",
+            email="another@example.com",
             password="testpassword",
         )
 

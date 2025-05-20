@@ -18,12 +18,12 @@ def get_tokens_for_user(user):
 class JWTBookPermissionsTest(APITestCase):
     def setUp(self):
         self.admin = User.objects.create_user(
-            username="admin@example.com",
+            email="admin@example.com",
             password="admin123",
             is_staff=True,
         )
         self.user = User.objects.create_user(
-            username="user@example.com",
+            email="user@example.com",
             password="user123",
             is_staff=False,
         )
