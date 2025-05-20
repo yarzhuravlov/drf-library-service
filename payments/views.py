@@ -2,12 +2,16 @@ from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
+from rest_framework import generics
 
 from base.mixins import ListModelMixin, RetrieveModelMixin
 from base.viewsets import GenericViewSet
 from payments.models import Payment
 from payments.serializers import PaymentSerializer
-from payments.services import update_payment_by_session_id
+from payments.services import (
+    update_payment_by_session_id,
+    renew_payment_session,
+)
 
 
 class PaymentViewSet(
@@ -70,3 +74,24 @@ class PaymentViewSet(
     )
     def cancel(self, *args, **kwargs):
         return Response("Payment can be completed later")
+
+
+class RenewPaymentView(generics.UpdateAPIView):
+    """Endpoint for renewing expired payment session."""
+    queryset = Payment.objects.all()
+    serializer_class = PaymentSerializer
+    permission_classes = (IsAuthenticated,)
+
+    def update(self, request, *args, **kwargs):
+        payment = self.get_object()
+
+        if payment.borrowing.user != request.user:
+            return Response(
+                {"detail": "Not authorized to renew this payment."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        payment = renew_payment_session(payment, request)
+        serializer = self.get_serializer(payment)
+
+        return Response(serializer.data)

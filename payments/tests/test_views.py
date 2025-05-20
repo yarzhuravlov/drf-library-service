@@ -4,6 +4,8 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient
 from unittest import mock
+from unittest.mock import patch
+from datetime import date
 
 from borrowings.models import Borrowing
 from payments.models import Payment
@@ -54,17 +56,17 @@ class PaymentViewSetTests(TestCase):
         self.borrowing_user = Borrowing.objects.create(
             user=self.regular_user,
             book=self.book,
-            borrow_date="2023-01-01",
-            expected_return="2023-01-10",
-            actual_return="2023-01-08",
+            borrow_date=date(2024, 1, 1),
+            expected_return=date(2024, 1, 10),
+            actual_return=date(2024, 1, 8),
         )
 
         self.borrowing_another = Borrowing.objects.create(
             user=self.another_user,
             book=self.book,
-            borrow_date="2023-01-01",
-            expected_return="2023-01-10",
-            actual_return="2023-01-09",
+            borrow_date=date(2024, 1, 1),
+            expected_return=date(2024, 1, 10),
+            actual_return=date(2024, 1, 9),
         )
 
         # Create payments
@@ -242,3 +244,72 @@ class PaymentViewSetTests(TestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data, "Payment can be completed later")
+
+
+class TestRenewPaymentView(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.user = get_user_model().objects.create_user(
+            email="test@test.com",
+            password="testpass123"
+        )
+        self.book = Book.objects.create(
+            title="Test Book",
+            daily_fee=10,
+            inventory=5,
+            cover=Book.Covers.HARD
+        )
+        self.borrowing = Borrowing.objects.create(
+            book=self.book,
+            user=self.user,
+            borrow_date=date(2024, 1, 1),
+            expected_return=date(2024, 1, 10)
+        )
+        self.payment = Payment.objects.create(
+            borrowing=self.borrowing,
+            session_url="https://test.com",
+            session_id="test_session",
+            money_to_pay=100,
+            status=Payment.Statuses.EXPIRED,
+            type=Payment.Types.PAYMENT
+        )
+        self.client.force_authenticate(user=self.user)
+
+    @patch("stripe.checkout.Session.create")
+    def test_renew_payment_session(self, mock_create):
+        mock_create.return_value.url = "https://new.test.com"
+        mock_create.return_value.id = "new_test_session"
+        
+        url = reverse("payments:payment-renew", args=[self.payment.id])
+        response = self.client.put(url)
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.payment.refresh_from_db()
+        self.assertEqual(self.payment.status, Payment.Statuses.PENDING)
+        self.assertEqual(self.payment.session_url, "https://new.test.com")
+        self.assertEqual(self.payment.session_id, "new_test_session")
+
+    def test_renew_payment_session_unauthorized(self):
+        other_user = get_user_model().objects.create_user(
+            email="other@test.com",
+            password="testpass123"
+        )
+        self.client.force_authenticate(user=other_user)
+        
+        url = reverse("payments:payment-renew", args=[self.payment.id])
+        response = self.client.put(url)
+        
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_renew_non_expired_payment(self):
+        self.payment.status = Payment.Statuses.PENDING
+        self.payment.save()
+        
+        url = reverse("payments:payment-renew", args=[self.payment.id])
+        response = self.client.put(url)
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.payment.refresh_from_db()
+        self.assertEqual(self.payment.status, Payment.Statuses.PENDING)
+        self.assertEqual(self.payment.session_url, "https://test.com")
+        self.assertEqual(self.payment.session_id, "test_session")
