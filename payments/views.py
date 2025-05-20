@@ -107,7 +107,11 @@ class PaymentViewSet(
         responses={
             200: {"description": "Payment status changed to PAID"},
             400: {"description": "session_id is required"},
-            404: {"description": "Paid session with such session_id not found"},
+            404: {
+                "description": (
+                    "Paid session with such session_id not found"
+                )
+            },
         },
     )
     @action(
@@ -162,14 +166,18 @@ class PaymentViewSet(
         ),
         responses={
             201: PaymentSerializer,
-            400: {"description": "Invalid borrowing ID or payment already exists"},
+            400: {
+                "description": "Invalid borrowing ID or payment already exists"
+            },
             404: {"description": "Borrowing not found"},
         },
     )
     @action(
         detail=False,
         methods=["post"],
-        url_path="create-for-borrowing/(?P<borrowing_id>[^/.]+)",
+        url_path=(
+            "create-for-borrowing/(?P<borrowing_id>[^/.]+)"
+        ),
     )
     def create_for_borrowing(self, request, borrowing_id=None):
         """Create a new payment for a borrowing."""
@@ -181,9 +189,16 @@ class PaymentViewSet(
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        if borrowing.user != request.user and not request.user.is_staff:
+        if (
+            borrowing.user != request.user
+            and not request.user.is_staff
+        ):
             return Response(
-                {"detail": "Not authorized to create payment for this borrowing"},
+                {
+                    "detail": (
+                        "Not authorized to create payment for this borrowing"
+                    )
+                },
                 status=status.HTTP_403_FORBIDDEN,
             )
 
@@ -193,15 +208,25 @@ class PaymentViewSet(
             type=Payment.Types.PAYMENT,
         ).first()
 
-        if existing_payment and existing_payment.status == Payment.Statuses.PAID:
+        if (
+            existing_payment
+            and existing_payment.status == Payment.Statuses.PAID
+        ):
             return Response(
                 {"detail": "Payment already completed for this borrowing"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        if existing_payment and existing_payment.status == Payment.Statuses.PENDING:
+        if (
+            existing_payment
+            and existing_payment.status == Payment.Statuses.PENDING
+        ):
             return Response(
-                {"detail": "Pending payment already exists for this borrowing"},
+                {
+                    "detail": (
+                        "Pending payment already exists for this borrowing"
+                    )
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 

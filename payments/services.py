@@ -1,4 +1,3 @@
-import os
 from datetime import timedelta
 from decimal import Decimal
 
@@ -22,7 +21,9 @@ def calc_borrowing_total_price(borrowing: Borrowing) -> int:
     """Calculate total price for borrowing in cents.
     Ensures the minimum amount is at least 50 cents."""
     borrowing_period = (borrowing.expected_return - borrowing.borrow_date).days
-    amount = borrowing_period * borrowing.book.daily_fee * 100  # Convert to cents
+    amount = (
+        borrowing_period * borrowing.book.daily_fee * 100
+    )  # Convert to cents
     return max(amount, MIN_AMOUNT)
 
 
@@ -33,11 +34,9 @@ def calc_borrowing_fine_price(
     """Calculate fine price for overdue borrowing in cents.
     Ensures the minimum amount is at least 50 cents."""
     overdue_days = (borrowing.actual_return - borrowing.expected_return).days
-    fine = overdue_days * int(
-        (
-            str(Decimal(borrowing.book.daily_fee) * Decimal(fine_multiplier))
-        ).split(".")[0]
-    ) * 100  # Convert to cents
+    daily_fee = Decimal(borrowing.book.daily_fee)
+    multiplier = Decimal(fine_multiplier)
+    fine = overdue_days * int(str(daily_fee * multiplier).split(".")[0]) * 100
     return max(fine, MIN_AMOUNT)
 
 
