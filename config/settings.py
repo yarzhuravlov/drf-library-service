@@ -235,19 +235,17 @@ if DEBUG:
         "rest_framework.authentication.SessionAuthentication"
     )
 
-# ==============================================================================
-# НАЛАШТУВАННЯ REDIS
-# ==============================================================================
+# ============================================================================
+# REDIS SETTINGS
+# ============================================================================
 REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
 REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
 REDIS_DB = int(os.getenv("REDIS_DB", 0))
-REDIS_PASSWORD = os.getenv(
-    "REDIS_PASSWORD", None
-)  # None якщо пароль відсутній
+REDIS_PASSWORD = os.getenv("REDIS_PASSWORD", None)  # None if no password
 
-# ==============================================================================
-# НАЛАШТУВАННЯ CELERY
-# ==============================================================================
+# ============================================================================
+# CELERY SETTINGS
+# ============================================================================
 CELERY_BROKER_URL = os.getenv(
     "CELERY_BROKER_URL",
     f'redis://{":" + REDIS_PASSWORD + "@" if REDIS_PASSWORD else ""}{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}',  # noqa: E501
@@ -259,18 +257,18 @@ CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = TIME_ZONE
 # CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 
-# ==============================================================================
-# НАЛАШТУВАННЯ СПОВІЩЕНЬ (Notifications App)
-# ==============================================================================
+# ============================================================================
+# NOTIFICATIONS APP SETTINGS
+# ============================================================================
 NOTIFICATIONS_QUEUE = os.getenv("NOTIFICATIONS_QUEUE", "notifications")
 LOG_LEVEL_NOTIFICATIONS = os.getenv("LOG_LEVEL_NOTIFICATIONS", "INFO")
 
-# ID чату або групи для адміністраторів бібліотеки
+# Chat or group ID for library administrators
 TELEGRAM_ADMIN_CHAT_ID = int(os.getenv("TELEGRAM_CHAT_ID", "368222740"))
 
-# ==============================================================================
-# НАЛАШТУВАННЯ ТЕЛЕГРАМ БОТА (Telegram Bot)
-# ==============================================================================
+# ============================================================================
+# TELEGRAM BOT SETTINGS
+# ============================================================================
 TELEGRAM_BOT_TOKEN = (
     os.getenv("TELEGRAM_BOT_TOKEN")
     or os.getenv("BOT_TOKEN")
