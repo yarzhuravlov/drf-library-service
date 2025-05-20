@@ -11,8 +11,8 @@ User = get_user_model()
 
 class RegisterTelegramUserWithJWTView(APIView):
     """
-    Приймає POST із email, password, telegram_id.
-    Аутентифікує, звʼязує Telegram, повертає JWT токени.
+    Accepts POST with email, password, telegram_id.
+    Authenticates, links Telegram, returns JWT tokens.
     """
 
     def post(self, request):
@@ -22,18 +22,18 @@ class RegisterTelegramUserWithJWTView(APIView):
 
         if not (email and password and telegram_id):
             return Response(
-                {"error": "Потрібно вказати email, password і telegram_id"},
+                {"error": "Email, password and telegram_id are required"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         user = authenticate(request, username=email, password=password)
         if not user:
             return Response(
-                {"error": "Невірний email або пароль"},
+                {"error": "Invalid email or password"},
                 status=status.HTTP_401_UNAUTHORIZED,
             )
 
-        # Перевірка унікальності telegram_id
+        # Check telegram_id uniqueness
         existing = (
             TelegramUser.objects.filter(telegram_id=telegram_id)
             .exclude(user=user)
@@ -41,7 +41,7 @@ class RegisterTelegramUserWithJWTView(APIView):
         )
         if existing:
             return Response(
-                {"error": "Цей telegram_id вже використовується"},
+                {"error": "This telegram_id is already in use"},
                 status=status.HTTP_409_CONFLICT,
             )
 
@@ -52,7 +52,7 @@ class RegisterTelegramUserWithJWTView(APIView):
             )
         except IntegrityError:
             return Response(
-                {"error": "Цей telegram_id вже використовується."},
+                {"error": "This telegram_id is already in use."},
                 status=status.HTTP_409_CONFLICT,
             )
 
