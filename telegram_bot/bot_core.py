@@ -8,6 +8,9 @@ from aiogram.exceptions import TelegramAPIError
 # Import configuration from current telegram_bot app
 from telegram_bot.config import TELEGRAM_BOT_TOKEN, LOG_LEVEL
 from telegram_bot.auth_handlers import router as auth_router
+from telegram_bot.menu_handlers import router as menu_router
+from telegram_bot.book_handlers import router as book_router
+from telegram_bot.user_handlers import router as user_router
 
 logging.basicConfig(
     level=getattr(logging, LOG_LEVEL, "INFO"),
@@ -27,6 +30,9 @@ else:
 
 dp = Dispatcher()
 dp.include_router(auth_router)
+dp.include_router(book_router)
+dp.include_router(user_router)
+dp.include_router(menu_router)
 
 
 async def send_message_to_user(telegram_id: int, text: str) -> bool:

@@ -37,3 +37,6 @@ NOTIFICATIONS_QUEUE = os.getenv("NOTIFICATIONS_QUEUE", "notifications")
 
 # Налаштування логування
 LOG_LEVEL = os.getenv("LOG_LEVEL_TELEGRAM_BOT", "INFO")
+
+# URL для запитів до Django API
+API_BASE_URL = os.getenv("API_BASE_URL", "http://app:8000/api/")

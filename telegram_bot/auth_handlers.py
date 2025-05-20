@@ -1,28 +1,41 @@
+import logging
 from aiogram import Router, F, types
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
+from aiogram.filters import Command
+from telegram_bot.config import API_BASE_URL
 import requests
-import logging
 
 logger = logging.getLogger(__name__)
 router = Router()
 
+
+url = 'https://example.com/api'
+headers = {
+    'Authorization': 'Bearer YOUR_TOKEN_HERE',
+    'Content-Type': 'application/json',
+    'Custom-Header': 'custom-value'
+}
+
+response = requests.get(url, headers=headers)
+
+# async def get_me(access_token)
 
 class AuthStates(StatesGroup):
     waiting_for_email = State()
     waiting_for_password = State()
 
 
-@router.message(F.text == "/login")
+@router.message(Command("login"))
 async def login_start(message: types.Message, state: FSMContext):
-    await message.answer("Enter your email:")
+    await message.answer("Введіть email:")
     await state.set_state(AuthStates.waiting_for_email)
 
 
 @router.message(AuthStates.waiting_for_email)
 async def get_email(message: types.Message, state: FSMContext):
     await state.update_data(email=message.text)
-    await message.answer("Enter your password:")
+    await message.answer("Введіть пароль:")
     await state.set_state(AuthStates.waiting_for_password)
 
 
@@ -32,10 +45,9 @@ async def get_password(message: types.Message, state: FSMContext):
     email = data["email"]
     password = message.text
     telegram_id = message.from_user.id
-
     try:
         resp = requests.post(
-            "http://localhost:8000/api/v1/bots/register_user/",
+            f"{API_BASE_URL}bots/register_user/",
             json={
                 "email": email,
                 "password": password,
@@ -43,106 +55,88 @@ async def get_password(message: types.Message, state: FSMContext):
             },
             timeout=10,
         )
-        if resp.content:
-            try:
-                resp_json = resp.json()
-                if isinstance(resp_json, dict):
-                    if resp.status_code == 200 and "access" in resp_json:
-                        access_token = resp_json["access"]
-                        await state.update_data(access_token=access_token)
-                        await message.answer(
-                            "You are successfully authenticated via Telegram!"
-                        )
-                        await state.set_state(None)
-                    else:
-                        error_msg = resp_json.get(
-                            "error", "Invalid email or password"
-                        )
-                        await message.answer(f"Error: {error_msg}")
-                        await state.clear()
-                else:
-                    logger.error(
-                        f"Response from server is not dictionary: {resp_json}"
-                    )
-                    await message.answer(
-                        "Error: Unexpected response from server."
-                    )
-                    await state.clear()
-            except requests.exceptions.JSONDecodeError:
-                logger.error(f"Response from server is not JSON: {resp.text}")
-                await message.answer("Error: Server returned non-JSON.")
-                await state.clear()
+        response_data = resp.json()
+        if (
+            resp.status_code == 200
+            and "access" in response_data
+            and "refresh" in response_data
+        ):
+            access_token = response_data["access"]
+            refresh_token = response_data["refresh"]
+            await state.update_data(
+                access_token=access_token, refresh_token=refresh_token
+            )
+            await state.set_state(None)
+            await message.answer("✅ Успішний вхід!")
+        elif resp.status_code == 200 and "access" in response_data:
+            access_token = response_data["access"]
+            await state.update_data(access_token=access_token)
+            await state.set_state(None)
+            await message.answer(
+                "✅ Успішний вхід! (Refresh token не отримано)"
+            )
         else:
-            logger.error("Server returned empty response")
-            await message.answer("Error: Server returned empty response.")
+            error_message = response_data.get(
+                "error", "Невірний email або пароль."
+            )
+            await message.answer(f"❌ {error_message}")
             await state.clear()
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Error connecting to backend: {e}")
-        await message.answer(f"Error connecting to backend: {e}")
-        await state.clear()
     except Exception as e:
-        logger.error(f"Unexpected error in get_password: {e}", exc_info=True)
-        await message.answer("Unexpected error. Try again later.")
+        logger.error(f"Login error: {e}")
+        await message.answer("Помилка підключення до бекенду.")
         await state.clear()
 
 
-@router.message(F.text == "/my_borrowings")
-async def my_borrowings(message: types.Message, state: FSMContext):
+@router.message(Command("logout"))
+async def logout(message: types.Message, state: FSMContext):
+    await state.clear()
+    await message.answer("Ви вийшли з системи.")
+
+
+async def get_valid_access_token(state: FSMContext):
+    """
+    Отримує дійсний access_token, при необхідності оновлює його через refresh_token
+
+    Args:
+        state: FSM контекст
+
+    Returns:
+        str: Валідний access_token або None, якщо його немає чи не можна оновити
+    """
     data = await state.get_data()
     access_token = data.get("access_token")
+    refresh_token = data.get("refresh_token")
+
     if not access_token:
-        await message.answer("Please login first via /login")
-        return
-    headers = {"Authorization": f"Bearer {access_token}"}
+        return None
+
     try:
         resp = requests.get(
-            "http://localhost:8000/api/v1/borrowings/",
-            headers=headers,
+            f"{API_BASE_URL}users/me/",
+            headers={"Authorization": f"Bearer {access_token}"},
             timeout=10,
         )
+
         if resp.status_code == 200:
-            borrowings_data = resp.json()
-            if not borrowings_data:
-                await message.answer("You have no active borrowings.")
-            else:
-                text_parts = ["Your borrowings:"]
-                for b in borrowings_data:
-                    if not isinstance(b, dict):
-                        logger.warning(
-                            f"Skipped borrowing item (not a dictionary): {b}"
-                        )
-                        continue
-                    book_id = b.get("book")
-                    borrow_date = b.get("borrow_date")
-                    expected_return_date = b.get("expected_return_date")
-                    text_parts.append(
-                        f"\n📚 Book ID: {book_id} | "
-                        f"{borrow_date} — {expected_return_date}"
-                    )
-                if len(text_parts) > 1:
-                    await message.answer("".join(text_parts))
-                else:
-                    await message.answer("Failed to process borrowing data.")
-        elif resp.status_code == 401:
-            await message.answer(
-                "Token invalid or session expired. " "Please login via /login"
-            )
-            await state.clear()
-        else:
-            if resp.content:
-                try:
-                    resp_json = resp.json()
-                    error_detail = resp_json.get("detail", "unknown")
-                    await message.answer(f"Error: {error_detail}")
-                except requests.exceptions.JSONDecodeError:
-                    await message.answer(
-                        f"Error: Server returned non-JSON: {resp.text}"
-                    )
-            else:
-                await message.answer("Error: Server returned empty response.")
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Error connecting to backend in my_borrowings: {e}")
-        await message.answer(f"Error connecting to backend: {e}")
+            return access_token
+
+        if resp.status_code == 401 and refresh_token:
+            try:
+                refresh_resp = requests.post(
+                    f"{API_BASE_URL}token/refresh/",
+                    json={"refresh": refresh_token},
+                    timeout=10,
+                )
+
+                if refresh_resp.status_code == 200:
+                    new_access = refresh_resp.json().get("access")
+                    if new_access:
+                        await state.update_data(access_token=new_access)
+                        return new_access
+            except Exception as e:
+                logger.error(f"Refresh token error: {e}")
+
     except Exception as e:
-        logger.error(f"Unexpected error in my_borrowings: {e}", exc_info=True)
-        await message.answer("Unexpected error. Try again later.")
+        logger.error(f"Token validation error: {e}")
+
+    return access_token
