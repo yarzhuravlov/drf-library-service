@@ -60,6 +60,11 @@ class PaymentViewSet(
                 {"detail": "Paid session with such session_id not found"},
                 status=status.HTTP_404_NOT_FOUND,
             )
+        if not hasattr(payment, "borrowing"):
+            return Response(
+                {"detail": "Internal error: payment object is invalid."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
         message = (
             f"💰 <b>Success</b>\n"

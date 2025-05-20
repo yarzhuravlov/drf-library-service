@@ -72,6 +72,7 @@ class PaymentViewSetTests(APITestCase):
     @patch("payments.views.update_payment_by_session_id")
     def test_success_payment_not_found(self, mock_update):
         mock_update.return_value = None
+
         url = reverse("payments:payment-success")
         response = self.client.get(url, {"session_id": "invalid_session"})
 
@@ -88,6 +89,7 @@ class PaymentViewSetTests(APITestCase):
     def test_list_payments_requires_authentication(self):
         url = reverse("payments:payment-list")
         response = self.client.get(url)
+
         self.assertEqual(response.status_code, 401)
 
     def test_list_payments_for_authenticated_user(self):
@@ -121,22 +123,23 @@ class PaymentViewSetTests(APITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(all(p["borrowing"] == self.borrowing.id for p in response.data))
 
-    def test_renew_payment_authorized(self):
+    @patch("payments.services.renew_payment_session")
+    def test_renew_payment_authorized(self, mock_renew):
         self.client.force_authenticate(user=self.user)
         url = reverse("payments:payment-renew", kwargs={"pk": self.payment.pk})
 
-        with patch("payments.services.renew_payment_session") as mock_renew:
-            mock_renew.return_value = self.payment
+        mock_renew.return_value = self.payment
 
-            response = self.client.put(url)
+        response = self.client.put(url)
 
-            self.assertEqual(response.status_code, 200)
-            self.assertEqual(response.data["session_id"], self.payment.session_id)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["session_id"], self.payment.session_id)
 
     def test_renew_payment_forbidden_for_other_user(self):
         self.client.force_authenticate(user=self.other_user)
         url = reverse("payments:payment-renew", kwargs={"pk": self.payment.pk})
 
         response = self.client.put(url)
+
         self.assertEqual(response.status_code, 403)
         self.assertEqual(response.data["detail"], "Not authorized to renew this payment.")
