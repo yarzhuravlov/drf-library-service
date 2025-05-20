@@ -6,12 +6,12 @@ This document describes how to integrate notifications into your Django module. 
 
 ## Available Notification Functions
 
-Start commands
+Start commands:
 
 celery -A config worker -l INFO --pool=solo - Celery
-python -m telegram_bot.worker - worker who works with redis
-python manage.py runserser - server
-redis - localy
+python -m telegram_bot.worker - worker that works with redis
+python manage.py runserver - server
+redis - locally
 
 We provide three main functions for sending notifications:
 

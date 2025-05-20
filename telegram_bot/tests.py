@@ -1,9 +1,7 @@
-from django.test import TestCase, override_settings
-from unittest.mock import patch, MagicMock, AsyncMock, call
+from django.test import TestCase
+from unittest.mock import patch, AsyncMock
 import json
-import asyncio
 import pytest
-import os
 
 
 class TelegramBotCoreTests(TestCase):

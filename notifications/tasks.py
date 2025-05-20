@@ -1,7 +1,5 @@
 from celery import shared_task
-import json
 import logging
-from django.conf import settings
 from notifications.handlers import send_notification_redis
 
 logger = logging.getLogger(__name__)
@@ -10,17 +8,17 @@ logger = logging.getLogger(__name__)
 @shared_task(name="notifications.tasks.send_notification_celery")
 def send_notification_celery(telegram_ids, text):
     """
-    Celery-задача для асинхронної відправки сповіщень
+    Celery task for asynchronous notification sending
 
     Args:
-        telegram_ids (list): Список ID в Telegram
-        text (str): Текст повідомлення
+        telegram_ids (list): List of Telegram IDs
+        text (str): Message text
 
     Returns:
-        bool: True якщо повідомлення відправлено в чергу, False - помилка
+        bool: True if the message was sent to the queue, False if error
     """
     try:
         return send_notification_redis(telegram_ids, text)
     except Exception as e:
-        logger.error(f"Помилка при відправці сповіщення через Celery: {e}")
+        logger.error(f"Error sending notification through Celery: {e}")
         return False
