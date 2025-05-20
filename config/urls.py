@@ -19,20 +19,25 @@ from debug_toolbar.toolbar import debug_toolbar_urls
 from django.conf import settings
 from django.contrib import admin
 from django.urls import path, include
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView, TokenVerifyView
+
+from accounts.views import activate_user
 
 urlpatterns = [
     path("admin/", admin.site.urls),
 
-    path("api/v1/auth/", include("dj_rest_auth.urls")),
-    path("api/v1/auth/registration/", include("dj_rest_auth.registration.urls")),
-    path("api/v1/auth/jwt/token/", TokenObtainPairView.as_view(), name="jwt-token"),
-    path("api/v1/auth/jwt/refresh/", TokenRefreshView.as_view(), name="jwt-refresh"),
-    path("api/v1/auth/jwt/verify/", TokenVerifyView.as_view(), name="jwt-verify"),
+    path("api/v1/auth/", include("djoser.urls")),
+    path("api/v1/auth/", include("djoser.urls.jwt")),
+    path("activate/<uid>/<token>/", activate_user, name="activate-user"),
 
     path("api/v1/books/", include("books.urls")),
     path("api/v1/", include("borrowings.urls")),
     path("api/v1/", include("payments.urls")),
+
+    path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
+    path("api/swagger/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
+    path("api/redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
 ]
 
 if settings.DEBUG:
