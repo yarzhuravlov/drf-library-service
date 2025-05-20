@@ -277,7 +277,7 @@ class RenewPaymentView(generics.UpdateAPIView):
             error_msg = "Not authorized to renew this payment."
             return Response(
                 {"detail": error_msg},
-                status=status.HTTP_403_FORBIDDEN
+                status=status.HTTP_403_FORBIDDEN,
             )
 
         payment = renew_payment_session(payment, request)
