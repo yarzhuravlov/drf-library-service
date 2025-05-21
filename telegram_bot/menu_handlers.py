@@ -178,7 +178,7 @@ async def help_button(message: types.Message, state: FSMContext):
     telegram_id = message.from_user.id
     await state.update_data(telegram_id=telegram_id)
 
-    await command_help(message)
+    await command_help(message, state)
 
 
 @router.message()

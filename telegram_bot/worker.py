@@ -53,7 +53,6 @@ async def process_message(message_data_json):
             return {}
 
         logger.info(f"Processing message for {len(telegram_ids)} recipients.")
-        # Send messages
         return await send_messages_to_users(telegram_ids, text_message)
 
     except json.JSONDecodeError:
@@ -76,7 +75,6 @@ class TelegramWorker:
 
     def _setup_signal_handlers(self):
         """Sets up signal handlers for proper shutdown."""
-        # Handle SIGINT (Ctrl+C) and SIGTERM
         for sig in [signal.SIGINT, signal.SIGTERM]:
             signal.signal(sig, self._graceful_shutdown)
 
@@ -84,7 +82,6 @@ class TelegramWorker:
         """Signal handler for graceful shutdown."""
         logger.info(f"Received signal {signum}, starting worker shutdown...")
         self.running = False
-        # Additional cleanup logic can be added here if needed
 
     async def connect_to_redis(self):
         """Establishes connection to Redis."""
