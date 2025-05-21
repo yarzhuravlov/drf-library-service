@@ -31,5 +31,7 @@ class BookSerializer(serializers.ModelSerializer):
 
     def validate_author_ids(self, value):
         if not value:
-            raise serializers.ValidationError("Book must have at least one author.")
+            raise serializers.ValidationError(
+                "Book must have at least one author."
+            )
         return value
