@@ -101,15 +101,14 @@ function App() {
     const params = getActivationParams();
     if (params) {
       setActivationStatus("loading");
-      fetch(
-        `http://localhost:8000/activate/${params.uid}/${params.token}/`,
-        {
-          method: "GET",
-          credentials: "include",
-        }
-      )
+      fetch("http://localhost:8000/api/v1/auth/users/activation/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ uid: params.uid, token: params.token }),
+      })
         .then(async (res) => {
-          if (res.status === 200) setActivationStatus("success");
+          if (res.status === 204) setActivationStatus("success");
           else setActivationStatus("failed");
         })
         .catch(() => setActivationStatus("failed"));
