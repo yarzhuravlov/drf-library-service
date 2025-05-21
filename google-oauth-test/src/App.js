@@ -1,17 +1,73 @@
 import React, { useEffect, useState } from "react";
 
+// Helper to parse activation params from URL
+function getActivationParams() {
+  const match = window.location.pathname.match(/\/activate\/([^/]+)\/([^/]+)\/?/);
+  if (match) {
+    return { uid: match[1], token: match[2] };
+  }
+  return null;
+}
+
 function App() {
+  // Registration state
+  const [form, setForm] = useState({
+    email: "",
+    password: "",
+    re_password: "",
+  });
+  const [regError, setRegError] = useState(null);
+  const [regSuccess, setRegSuccess] = useState(false);
+
+  // Activation state
+  const [activationStatus, setActivationStatus] = useState(null);
+
+  // Button hover states
+  const [isGoogleHovered, setIsGoogleHovered] = useState(false);
+  const [isRegisterHovered, setIsRegisterHovered] = useState(false);
+
   const [tokenData, setTokenData] = useState(null);
   const redirectUri = window.location.origin;
 
-  // After Google redirect, exchange code+state via query params
+  // Handle form field changes
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  // Registration form submit handler
+  const handleRegister = (e) => {
+    e.preventDefault();
+    setRegError(null);
+    setRegSuccess(false);
+    fetch("http://localhost:8000/api/v1/auth/users/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(form),
+    })
+      .then(async (res) => {
+        if (res.ok) {
+          setRegSuccess(true);
+          setForm({ email: "", password: "", re_password: "" });
+        } else {
+          const data = await res.json();
+          setRegError(
+            typeof data === "string"
+              ? data
+              : Object.values(data).flat().join(" ")
+          );
+        }
+      })
+      .catch(() => setRegError("Network error"));
+  };
+
+  // Google OAuth: fetch tokens if redirected back with ?code=...
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const code = params.get("code");
     const state = params.get("state");
 
     if (code && state) {
-      // Use query params for code, state, redirect_uri
       const url = `http://localhost:8000/api/v1/auth/o/google-oauth2/?state=${encodeURIComponent(
         state
       )}&code=${encodeURIComponent(code)}&redirect_uri=${encodeURIComponent(
@@ -26,9 +82,9 @@ function App() {
         .then((data) => setTokenData(data))
         .catch((err) => console.error("Token exchange error:", err));
     }
-  }, []);
+  }, [redirectUri]);
 
-  // Start OAuth flow: GET auth_url then redirect
+  // Start Google OAuth flow
   const startGoogleLogin = () => {
     fetch(
       `http://localhost:8000/api/v1/auth/o/google-oauth2/?redirect_uri=${encodeURIComponent(
@@ -43,7 +99,26 @@ function App() {
       .catch((err) => console.error("Auth URL fetch error:", err));
   };
 
-  // Стилі без CSS-файлів
+  // Handle activation by POST request
+  useEffect(() => {
+    const params = getActivationParams();
+    if (params) {
+      setActivationStatus("loading");
+      fetch("http://localhost:8000/api/v1/auth/users/activation/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ uid: params.uid, token: params.token }),
+      })
+        .then(async (res) => {
+          if (res.status === 204) setActivationStatus("success");
+          else setActivationStatus("failed");
+        })
+        .catch(() => setActivationStatus("failed"));
+    }
+  }, []);
+
+  // --- Styles ---
   const wrapperStyle = {
     minHeight: "100vh",
     display: "flex",
@@ -66,51 +141,172 @@ function App() {
   };
 
   const titleStyle = {
-    fontSize: "2.4rem",
+    fontSize: "2.2rem",
     fontWeight: "700",
     color: "#1b4332",
-    marginBottom: "32px",
+    marginBottom: "24px",
     textAlign: "center",
     letterSpacing: "1px",
   };
 
+  // Unified style for both buttons, centered
   const buttonStyle = {
     background: "#43aa8b",
     color: "#fff",
-    fontSize: "1.2rem",
+    fontSize: "1.1rem",
     fontWeight: "600",
-    padding: "20px 48px",
+    padding: "14px 32px",
     border: "none",
-    borderRadius: "12px",
+    borderRadius: "16px",
     cursor: "pointer",
-    marginTop: "16px",
-    marginBottom: "16px",
-    boxShadow: "0 2px 8px 0 rgba(67,170,139,0.1)",
+    marginTop: "24px",
+    marginBottom: "0",
     transition: "background 0.2s",
+    minWidth: "290px",
+    display: "block",
+    textAlign: "center",
   };
-
-  const buttonHoverStyle = {
+  // Unified hover color for both
+  const greenHoverStyle = {
     background: "#38b000",
+    color: "#fff",
   };
 
-  // Для ховер-ефекту
-  const [isHovered, setIsHovered] = useState(false);
+  // Activation page
+  const activationParams = getActivationParams();
+  if (activationParams) {
+    return (
+      <div style={wrapperStyle}>
+        <div style={cardStyle}>
+          <div style={titleStyle}>Account Activation</div>
+          {activationStatus === "loading" && <p>Activating...</p>}
+          {activationStatus === "success" && (
+            <p style={{ color: "#38b000", fontWeight: "600" }}>
+              Your account has been activated! <br /> You can now log in.
+            </p>
+          )}
+          {activationStatus === "failed" && (
+            <p style={{ color: "#d90429", fontWeight: "600" }}>
+              Activation failed. <br /> This link is invalid or has already been used.
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  }
 
+  // Main registration/login page
   return (
     <div style={wrapperStyle}>
       <div style={cardStyle}>
         <div style={titleStyle}>Welcome to ReadRiot Library</div>
-        {!tokenData && (
-          <button
-            style={isHovered ? { ...buttonStyle, ...buttonHoverStyle } : buttonStyle}
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
-            onClick={startGoogleLogin}
-          >
-            Login with Google
-          </button>
+        {/* Registration form */}
+        <form
+          style={{
+            width: "100%",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+          }}
+          onSubmit={handleRegister}
+        >
+          <input
+            style={{
+              width: "100%",
+              marginBottom: "12px",
+              padding: "12px",
+              borderRadius: "8px",
+              border: "1px solid #ccc",
+              fontSize: "1rem",
+            }}
+            required
+            type="email"
+            name="email"
+            placeholder="Email"
+            value={form.email}
+            onChange={handleChange}
+          />
+          <input
+            style={{
+              width: "100%",
+              marginBottom: "12px",
+              padding: "12px",
+              borderRadius: "8px",
+              border: "1px solid #ccc",
+              fontSize: "1rem",
+            }}
+            required
+            type="password"
+            name="password"
+            placeholder="Password"
+            value={form.password}
+            onChange={handleChange}
+          />
+          <input
+            style={{
+              width: "100%",
+              marginBottom: "0",
+              padding: "12px",
+              borderRadius: "8px",
+              border: "1px solid #ccc",
+              fontSize: "1rem",
+            }}
+            required
+            type="password"
+            name="re_password"
+            placeholder="Repeat Password"
+            value={form.re_password}
+            onChange={handleChange}
+          />
+
+          {/* Register button centered */}
+          <div style={{ display: "flex", justifyContent: "center", width: "100%" }}>
+            <button
+              type="submit"
+              style={
+                isRegisterHovered
+                  ? { ...buttonStyle, ...greenHoverStyle }
+                  : buttonStyle
+              }
+              onMouseEnter={() => setIsRegisterHovered(true)}
+              onMouseLeave={() => setIsRegisterHovered(false)}
+              disabled={regSuccess}
+            >
+              Register
+            </button>
+          </div>
+        </form>
+        {/* Registration feedback */}
+        {regError && (
+          <div style={{ color: "#d90429", marginTop: "14px", fontWeight: 600 }}>
+            {regError}
+          </div>
+        )}
+        {regSuccess && (
+          <div style={{ color: "#38b000", marginTop: "14px", fontWeight: 600 }}>
+            Registration successful!<br />
+            Please check your email to activate your account.
+          </div>
         )}
 
+        {/* Google Login button centered */}
+        {!tokenData && (
+          <div style={{ display: "flex", justifyContent: "center", width: "100%" }}>
+            <button
+              style={
+                isGoogleHovered
+                  ? { ...buttonStyle, ...greenHoverStyle }
+                  : buttonStyle
+              }
+              onMouseEnter={() => setIsGoogleHovered(true)}
+              onMouseLeave={() => setIsGoogleHovered(false)}
+              onClick={startGoogleLogin}
+            >
+              Login with Google
+            </button>
+          </div>
+        )}
+        {/* Display token info (if logged in with Google) */}
         {tokenData && (
           <div style={{ marginTop: "24px", width: "100%" }}>
             <h2 style={{ fontSize: "1.3rem", fontWeight: "700" }}>Tokens</h2>

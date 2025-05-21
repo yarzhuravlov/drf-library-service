@@ -9,7 +9,7 @@
   {% endblocktrans %}
 
   {% trans "Please go to the following page to activate your account:" %}
-  {{ protocol }}://{{ domain }}/{{ url|safe }}
+  {{ activation_url }}
 
   {% trans "Thanks for using our site!" %}
 
@@ -18,8 +18,7 @@
 
 {% block html_body %}
   <div style="font-family: Arial, sans-serif; background-color: #f9f9f9; padding: 20px;">
-    <div
-        style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border: 1px solid #ddd; border-radius: 10px; overflow: hidden;">
+    <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border: 1px solid #ddd; border-radius: 10px; overflow: hidden;">
       <div style="background-color: #4CAF50; color: white; padding: 20px; text-align: center;">
         <h1 style="margin: 0;">{{ site_name }}</h1>
       </div>
@@ -32,7 +31,7 @@
           {% trans "Please go to the following page to activate your account:" %}
         </p>
         <p style="text-align: center; margin: 20px 0;">
-          <a href="{{ protocol }}://{{ domain }}/{{ url|safe }}"
+          <a href="{{ activation_url }}"
              style="background-color: #4CAF50; color: white; text-decoration: none; padding: 10px 20px; border-radius: 5px; font-size: 16px; display: inline-block;">
             {% trans "Activate Account" %}
           </a>
