@@ -3,6 +3,7 @@ from rest_framework import status
 from rest_framework.test import APIClient
 from django.contrib.auth import get_user_model
 from django.test import TestCase
+from unittest.mock import patch, MagicMock
 
 from books.models import Book, Author
 from borrowings.models import Borrowing
@@ -42,7 +43,9 @@ class BorrowingConcurrencyTests(TestCase):
             args=[self.borrowing.id],
         )
 
-    def test_concurrent_return_attempts_only_one_successful(self):
+    @patch("payments.services.create_stripe_session")
+    def test_concurrent_return_attempts_only_one_successful(self, mock_session):
+        mock_session.return_value = MagicMock(url="test_url", id="test_id")
         self.client.force_authenticate(user=self.staff_user)
 
         response1 = self.client.post(self.return_url)

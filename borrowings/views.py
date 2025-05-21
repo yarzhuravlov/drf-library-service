@@ -1,3 +1,4 @@
+from django.db import transaction
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
@@ -12,6 +13,7 @@ from borrowings.serializers import (
     BorrowingReturnSerializer,
 )
 from payments.models import Payment
+from payments.services import create_payment
 
 
 class BorrowingViewSet(viewsets.ModelViewSet):
@@ -80,4 +82,7 @@ class BorrowingViewSet(viewsets.ModelViewSet):
                 }
             )
 
-        serializer.save(user=user)
+        with transaction.atomic():
+            borrowing = serializer.save(user=user)
+            create_payment(borrowing, self.request)
+        return borrowing

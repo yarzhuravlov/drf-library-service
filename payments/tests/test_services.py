@@ -1,11 +1,11 @@
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 from unittest.mock import patch
 
 import stripe
 from django.test import TestCase
 from django.contrib.auth import get_user_model
-from django.urls import reverse
+from django.utils import timezone
 from rest_framework.test import APIRequestFactory
 
 from borrowings.models import Borrowing
@@ -48,13 +48,14 @@ class PaymentServicesTests(TestCase):
 
     def test_calc_borrowing_total_price(self):
         price = calc_borrowing_total_price(self.borrowing)
-        self.assertEqual(price, 90)  # 9 days * 10 daily fee
+        self.assertEqual(price, 9000)
 
     def test_calc_borrowing_fine_price(self):
         fine = calc_borrowing_fine_price(self.borrowing)
-        expected_fine = 5 * int(
-            str(Decimal("10") * Decimal("0.3")).split(".")[0]
-        )  # 5 days overdue * (10 * 0.3)
+        daily_fee = Decimal("10")
+        fine_rate = Decimal("0.3")
+        fine_multiplier = int(str(daily_fee * fine_rate).split(".")[0])
+        expected_fine = 5 * fine_multiplier * 100
         self.assertEqual(fine, expected_fine)
 
     @patch("stripe.checkout.Session.create")
@@ -77,9 +78,10 @@ class PaymentServicesTests(TestCase):
         self.assertEqual(payment.borrowing, self.borrowing)
         self.assertEqual(payment.session_url, "https://test.com")
         self.assertEqual(payment.session_id, "test_session")
-        self.assertEqual(payment.money_to_pay, 90)  # 9 days * 10 daily fee
+        self.assertEqual(payment.money_to_pay, 9000)
         self.assertEqual(payment.type, Payment.Types.PAYMENT)
         self.assertEqual(payment.status, Payment.Statuses.PENDING)
+        self.assertGreater(payment.expiration_at, timezone.now())
 
     @patch("stripe.checkout.Session.create")
     def test_create_fine_payment(self, mock_create):
@@ -88,15 +90,18 @@ class PaymentServicesTests(TestCase):
 
         payment = create_fine_payment(self.borrowing, self.request)
 
+        daily_fee = Decimal("10")
+        fine_rate = Decimal("0.3")
+        fine_multiplier = int(str(daily_fee * fine_rate).split(".")[0])
+        expected_fine = 5 * fine_multiplier
+
         self.assertEqual(payment.borrowing, self.borrowing)
         self.assertEqual(payment.session_url, "https://test.com")
         self.assertEqual(payment.session_id, "test_session")
-        expected_fine = 5 * int(
-            str(Decimal("10") * Decimal("0.3")).split(".")[0]
-        )  # 5 days overdue * (10 * 0.3)
-        self.assertEqual(payment.money_to_pay, expected_fine)
+        self.assertEqual(payment.money_to_pay, expected_fine * 100)
         self.assertEqual(payment.type, Payment.Types.FINE)
         self.assertEqual(payment.status, Payment.Statuses.PENDING)
+        self.assertGreater(payment.expiration_at, timezone.now())
 
     @patch("stripe.checkout.Session.retrieve")
     def test_update_payment_by_session_id_invalid_session(self, mock_retrieve):
@@ -112,7 +117,7 @@ class PaymentServicesTests(TestCase):
         mock_retrieve.return_value.payment_status = "unpaid"
 
         result = update_payment_by_session_id("test_session")
-        self.assertIsNone(result) 
+        self.assertIsNone(result)
 
     @patch("stripe.checkout.Session.retrieve")
     def test_update_payment_by_session_id_success(self, mock_retrieve):
@@ -123,13 +128,14 @@ class PaymentServicesTests(TestCase):
             session_id="test_session",
             money_to_pay=100,
             type=Payment.Types.PAYMENT,
-            status=Payment.Statuses.PENDING
+            status=Payment.Statuses.PENDING,
+            expiration_at=timezone.now() + timedelta(minutes=30),
         )
 
         result = update_payment_by_session_id("test_session")
         payment.refresh_from_db()
 
-        self.assertEqual(result, Payment)
+        self.assertIsInstance(result, Payment)
         self.assertEqual(payment.status, Payment.Statuses.PAID)
 
     @patch("stripe.checkout.Session.create")
@@ -140,12 +146,13 @@ class PaymentServicesTests(TestCase):
             session_id="test_session",
             money_to_pay=100,
             type=Payment.Types.PAYMENT,
-            status=Payment.Statuses.PENDING
+            status=Payment.Statuses.PENDING,
+            expiration_at=timezone.now() + timedelta(minutes=30),
         )
 
         result = renew_payment_session(payment, self.request)
 
-        self.assertEqual(result, payment)
+        self.assertIsInstance(result, Payment)
         self.assertEqual(result.status, Payment.Statuses.PENDING)
         mock_create.assert_not_called()
 
@@ -159,7 +166,8 @@ class PaymentServicesTests(TestCase):
             session_id="test_session",
             money_to_pay=100,
             type=Payment.Types.PAYMENT,
-            status=Payment.Statuses.EXPIRED
+            status=Payment.Statuses.EXPIRED,
+            expiration_at=timezone.now() - timedelta(minutes=1),
         )
 
         result = renew_payment_session(payment, self.request)
@@ -167,6 +175,7 @@ class PaymentServicesTests(TestCase):
         self.assertEqual(result.session_url, "https://new-test.com")
         self.assertEqual(result.session_id, "new_test_session")
         self.assertEqual(result.status, Payment.Statuses.PENDING)
+        self.assertGreater(result.expiration_at, timezone.now())
         mock_create.assert_called_once()
 
 
@@ -194,27 +203,31 @@ class CheckExpiredSessionsTaskTests(TestCase):
             session_id="test_session",
             money_to_pay=100,
             status=Payment.Statuses.PENDING,
-            type=Payment.Types.PAYMENT
+            type=Payment.Types.PAYMENT,
+            expiration_at=timezone.now() - timedelta(minutes=1),
         )
 
     @patch("stripe.checkout.Session.retrieve")
-    def test_check_expired_sessions_success(self, mock_retrieve):
+    def test_check_expired_sessions(self, mock_retrieve):
         from payments.tasks import check_expired_sessions
-        
+
         mock_retrieve.return_value.status = "expired"
-        
+
         check_expired_sessions()
-        
+
         self.payment.refresh_from_db()
         self.assertEqual(self.payment.status, Payment.Statuses.EXPIRED)
 
     @patch("stripe.checkout.Session.retrieve")
-    def test_check_expired_sessions_stripe_error(self, mock_retrieve):
+    def test_check_expired_sessions_not_expired(self, mock_retrieve):
         from payments.tasks import check_expired_sessions
-        
+
         mock_retrieve.side_effect = stripe.error.StripeError("Test error")
-        
+
+        self.payment.expiration_at = timezone.now() + timedelta(minutes=30)
+        self.payment.save()
+
         check_expired_sessions()
-        
+
         self.payment.refresh_from_db()
         self.assertEqual(self.payment.status, Payment.Statuses.PENDING)
