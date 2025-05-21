@@ -227,7 +227,7 @@ async def register_telegram_user(email, password, telegram_id):
     Returns:
         tuple: (success (bool), data or error_text)
     """
-    url = f"{API_BASE_URL}bots/register_user/"
+    url = f"{API_BASE_URL}notifications/bots/register_user/"
     try:
         async with httpx.AsyncClient() as client:
             response = await client.post(
