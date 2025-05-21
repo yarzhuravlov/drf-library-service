@@ -44,7 +44,9 @@ class BorrowingConcurrencyTests(TestCase):
         )
 
     @patch("payments.services.create_stripe_session")
-    def test_concurrent_return_attempts_only_one_successful(self, mock_session):
+    def test_concurrent_return_attempts_only_one_successful(
+        self, mock_session
+    ):
         mock_session.return_value = MagicMock(url="test_url", id="test_id")
         self.client.force_authenticate(user=self.staff_user)
 
