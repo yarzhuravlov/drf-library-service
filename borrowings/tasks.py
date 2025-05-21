@@ -1,21 +1,16 @@
 from celery import shared_task
 from datetime import date
-import logging
-
 from borrowings.models import Borrowing
 from notifications.handlers import send_notification_to_all_admin_users
 
-logger = logging.getLogger(__name__)
-
 @shared_task
 def check_overdue_borrowings():
-    logger.info("Starting check for overdue borrowings")
     today = date.today()
     overdue_borrowings = Borrowing.objects.filter(
         expected_return__lte=today,
         actual_return__isnull=True
     )
-    if overdue_borrowings:
+    if overdue_borrowings.exists():
         for borrowing in overdue_borrowings:
             days_overdue = (today - borrowing.expected_return).days
             message = (
@@ -29,4 +24,3 @@ def check_overdue_borrowings():
             send_notification_to_all_admin_users(message)
     else:
         send_notification_to_all_admin_users("<b>No borrowings overdue today!</b>")
-    logger.info("Check for overdue borrowings completed")
