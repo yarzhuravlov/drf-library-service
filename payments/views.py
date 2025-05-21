@@ -107,7 +107,7 @@ class PaymentViewSet(
         ),
     )
     def retrieve(self, _request, *_args, **_kwargs):
-        return super().list(_request, *_args, **_kwargs)
+        return super().retrieve(_request, *_args, **_kwargs)
 
     @extend_schema(
         summary="Handle successful payment",
