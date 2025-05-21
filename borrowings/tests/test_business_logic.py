@@ -11,16 +11,15 @@ from payments.models import Payment
 
 User = get_user_model()
 
+
 class BorrowingBusinessLogicTests(TestCase):
     def setUp(self):
         self.client = APIClient()
         self.user = User.objects.create_user(
-            email="user@example.com",
-            password="userpass"
+            email="user@example.com", password="userpass"
         )
         self.user_no_pending_payment = User.objects.create_user(
-            email="no_pending@example.com",
-            password="password123"
+            email="no_pending@example.com", password="password123"
         )
         self.author = Author.objects.create(
             first_name="Test", last_name="Author"

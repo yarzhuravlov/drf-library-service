@@ -17,14 +17,18 @@ class BorrowingCreateAtomicTests(TestCase):
         self.client = APIClient()
         self.user = User.objects.create_user(email="a@e.com", password="pass")
         author = Author.objects.create(first_name="X", last_name="Y")
-        self.book = Book.objects.create(title="Z", cover=Book.Covers.SOFT, inventory=1, daily_fee=50)
+        self.book = Book.objects.create(
+            title="Z", cover=Book.Covers.SOFT, inventory=1, daily_fee=50
+        )
         self.book.authors.add(author)
         self.url = reverse("borrowings:borrowing-list")
 
     @patch("borrowings.views.create_payment")
     def test_transaction_rollback_on_payment_error(self, mock_create_payment):
 
-        mock_create_payment.side_effect = ValidationError("Simulated Stripe error")
+        mock_create_payment.side_effect = ValidationError(
+            "Simulated Stripe error"
+        )
 
         self.client.force_authenticate(user=self.user)
         data = {

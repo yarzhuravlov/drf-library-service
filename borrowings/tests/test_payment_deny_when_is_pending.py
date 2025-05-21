@@ -11,6 +11,7 @@ from payments.models import Payment
 
 User = get_user_model()
 
+
 class BorrowingPendingPaymentTests(TestCase):
     def setUp(self):
         self.client = APIClient()

@@ -26,6 +26,7 @@ class PaymentServicesTests(TestCase):
         self.request = factory.get("/")
         # Create a user, book, borrowing
         from django.contrib.auth import get_user_model
+
         User = get_user_model()
         self.user = User.objects.create_user(email="u@e.com", password="p")
         self.author = Author.objects.create(first_name="A", last_name="B")
@@ -112,7 +113,9 @@ class PaymentServicesTests(TestCase):
         payment = create_payment(b, self.request)
 
         # Assert
-        mock_session_fn.assert_called_once_with(b, calc_borrowing_total_price(b), self.request)
+        mock_session_fn.assert_called_once_with(
+            b, calc_borrowing_total_price(b), self.request
+        )
         assert isinstance(payment, Payment)
         assert payment.session_url == fake.url
         assert payment.session_id == fake.id
