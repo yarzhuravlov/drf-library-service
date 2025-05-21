@@ -7,7 +7,6 @@ from rest_framework.response import Response
 
 import stripe
 
-
 from base.mixins import ListModelMixin, RetrieveModelMixin
 from base.viewsets import GenericViewSet
 from payments.models import Payment
@@ -27,7 +26,6 @@ from notifications.handlers import send_notification_to_all_admin_users
     description="Endpoint for handling Stripe webhook events",
     responses={200: None},
 )
-
 def stripe_webhook(request):
     """Handle Stripe webhook events."""
     payload = request.body
@@ -51,13 +49,11 @@ def stripe_webhook(request):
     return Response(status=status.HTTP_200_OK)
 
 
-
 class PaymentViewSet(
     ListModelMixin,
     RetrieveModelMixin,
     GenericViewSet,
 ):
-
     """ViewSet for managing payments.
 
     This viewset provides endpoints for:
@@ -72,7 +68,6 @@ class PaymentViewSet(
     request_serializer_class = PaymentSerializer
     response_serializer_class = PaymentSerializer
     permission_classes = [IsAuthenticated]
-
 
     action_permission_classes = {
         "list": IsAuthenticated,
@@ -157,7 +152,6 @@ class PaymentViewSet(
 
         return Response({"message": "Payment status changed to PAID"})
 
-
     @extend_schema(
         summary="Handle cancelled payment",
         description=(
@@ -168,7 +162,6 @@ class PaymentViewSet(
             200: {"description": "Payment can be completed later"},
         },
     )
-
     @action(
         detail=False,
         methods=["get"],
@@ -177,7 +170,6 @@ class PaymentViewSet(
     )
     def cancel(self, *args, **kwargs):
         return Response({"message": "Payment can be completed later"})
-
 
     @extend_schema(
         summary="Create payment for borrowing",
@@ -252,7 +244,6 @@ class PaymentViewSet(
                 {"detail": str(e)},
                 status=status.HTTP_400_BAD_REQUEST
             )
-
 
 
 class RenewPaymentView(generics.UpdateAPIView):

@@ -92,7 +92,7 @@ class PaymentViewSetTests(APITestCase):
         with patch("payments.views.update_payment_by_session_id") as mock_update:
             mock_update.return_value = self.payment
             url = reverse("payments:payment-success")
-            response = self.client.get(f"{url}?session_id=test_session_id")
+            response = self.client.get(url, {"session_id": "test_session_id"})
             self.assertEqual(response.status_code, status.HTTP_200_OK)
             self.assertEqual(response.data, {"message": "Payment status changed to PAID"})
 
