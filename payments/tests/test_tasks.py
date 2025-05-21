@@ -1,8 +1,8 @@
-from unittest.mock import patch
-from datetime import date
+from datetime import date, timedelta
 
 from django.test import TestCase
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 
 from borrowings.models import Borrowing
 from books.models import Book
@@ -34,21 +34,19 @@ class TestCheckExpiredSessions(TestCase):
             session_id="test_session",
             money_to_pay=100,
             status=Payment.Statuses.PENDING,
-            type=Payment.Types.PAYMENT
+            type=Payment.Types.PAYMENT,
+            expiration_at=timezone.now() - timedelta(minutes=1)
         )
 
-    @patch("stripe.checkout.Session.retrieve")
-    def test_check_expired_sessions(self, mock_retrieve):
-        mock_retrieve.return_value.status = "expired"
-        
+    def test_check_expired_sessions(self):
         check_expired_sessions()
         
         self.payment.refresh_from_db()
         self.assertEqual(self.payment.status, Payment.Statuses.EXPIRED)
 
-    @patch("stripe.checkout.Session.retrieve")
-    def test_check_non_expired_sessions(self, mock_retrieve):
-        mock_retrieve.return_value.status = "open"
+    def test_check_non_expired_sessions(self):
+        self.payment.expiration_at = timezone.now() + timedelta(minutes=30)
+        self.payment.save()
         
         check_expired_sessions()
         

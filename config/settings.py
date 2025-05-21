@@ -62,8 +62,6 @@ INSTALLED_APPS = [
     "drf_spectacular",
     "drf_spectacular_sidecar",
     "djoser",
-    "social_django",
-    "corsheaders",
     # local
     "accounts",
     "books",
@@ -76,14 +74,12 @@ SITE_ID = 1
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
-    "corsheaders.middleware.CorsMiddleware",
     "debug_toolbar.middleware.DebugToolbarMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
-    "social_django.middleware.SocialAuthExceptionMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
@@ -100,8 +96,6 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
-                "social_django.context_processors.backends",
-                "social_django.context_processors.login_redirect",
             ],
         },
     },
@@ -199,19 +193,10 @@ SIMPLE_JWT = {
 DJOSER = {
     "LOGIN_FIELD": "email",
     "USER_CREATE_PASSWORD_RETYPE": True,
-    "USERNAME_CHANGED_EMAIL_CONFIRMATION": True,
-    "PASSWORD_CHANGED_EMAIL_CONFIRMATION": True,
     "SEND_ACTIVATION_EMAIL": True,
     "SEND_CONFIRMATION_EMAIL": True,
-    "SET_PASSWORD_RETYPE": True,
     "ACTIVATION_URL": "activate/{uid}/{token}/",
     "PASSWORD_RESET_CONFIRM_URL": "password/reset/confirm/{uid}/{token}/",
-    "SOCIAL_AUTH_TOKEN_STRATEGY": "djoser.social.token.jwt.TokenStrategy",
-    "SOCIAL_AUTH_ALLOWED_REDIRECT_URIS": [
-        "http://localhost:3000",
-        "http://localhost:8000",
-        "http://127.0.0.1:8000",
-    ],
     "SERIALIZERS": {
         "user": "accounts.serializers.UserSerializer",
         "current_user": "accounts.serializers.UserSerializer",
@@ -224,32 +209,6 @@ DJOSER = {
     "EMAIL_FRONTEND_SITE_NAME": "ReadRiot",
 }
 
-AUTHENTICATION_BACKENDS = (
-    "social_core.backends.google.GoogleOAuth2",
-    "django.contrib.auth.backends.ModelBackend",
-)
-
-SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = os.environ.get("GOOGLE_CLIENT_ID")
-SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = os.environ.get("GOOGLE_SECRET")
-SOCIAL_AUTH_GOOGLE_OAUTH2_SCOPE = [
-    "https://www.googleapis.com/auth/userinfo.email",
-    "https://www.googleapis.com/auth/userinfo.profile",
-    "openid",
-]
-SOCIAL_AUTH_GOOGLE_OAUTH2_EXTRA_DATA = ["first_name", "last_name"]
-
-SOCIAL_AUTH_PIPELINE = (
-    "social_core.pipeline.social_auth.social_details",
-    "social_core.pipeline.social_auth.social_uid",
-    "social_core.pipeline.social_auth.auth_allowed",
-    "social_core.pipeline.social_auth.social_user",
-    "social_core.pipeline.user.get_username",
-    "social_core.pipeline.user.create_user",
-    "accounts.pipeline.safe_associate_user",
-    "social_core.pipeline.social_auth.load_extra_data",
-    "social_core.pipeline.user.user_details",
-)
-
 EMAIL_BACKEND = os.environ.get("EMAIL_BACKEND")
 EMAIL_HOST = os.environ.get("EMAIL_HOST")
 EMAIL_PORT = int(os.environ.get("EMAIL_PORT"))
@@ -257,17 +216,6 @@ EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS") == "True"
 EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD")
 DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL")
-
-cors_origins = os.environ.get("CORS_ALLOWED_ORIGINS")
-if cors_origins:
-    CORS_ALLOWED_ORIGINS = [
-        origin.strip()
-        for origin in cors_origins.split(",")
-    ]
-else:
-    CORS_ALLOWED_ORIGINS = []
-
-CORS_ALLOW_CREDENTIALS = True
 
 SPECTACULAR_SETTINGS = {
     "TITLE": "Library Service API",
@@ -281,7 +229,6 @@ SPECTACULAR_SETTINGS = {
         "defaultModelExpandDepth": 2,
     },
 }
-
 
 if DEBUG:
     REST_FRAMEWORK["DEFAULT_AUTHENTICATION_CLASSES"].append(
@@ -335,3 +282,29 @@ if TELEGRAM_BOT_SERVICE_SECRET := os.environ.get(
     "TELEGRAM_BOT_SERVICE_SECRET"
 ):
     SERVICE_SECRETS.append(TELEGRAM_BOT_SERVICE_SECRET)
+
+# ==============================================================================
+# Settings for Stripe
+# ==============================================================================
+STRIPE_PUBLISHABLE_KEY = os.environ.get(
+    "STRIPE_PUBLISHABLE_KEY",
+    "pk_test_your_publishable_key_here"
+)
+STRIPE_SECRET_KEY = os.environ.get(
+    "STRIPE_SECRET_KEY",
+    "sk_test_your_secret_key_here"
+)
+STRIPE_WEBHOOK_SECRET = os.environ.get(
+    "STRIPE_WEBHOOK_SECRET",
+    "whsec_your_webhook_secret_here"
+)
+DEFAULT_CURRENCY = os.environ.get("DEFAULT_CURRENCY", "usd")
+EXPIRATION_MINUTES = int(os.environ.get("EXPIRATION_MINUTES", "30"))
+FINE_MULTIPLIER = os.environ.get("FINE_MULTIPLIER", "0.3")
+
+if not all([STRIPE_PUBLISHABLE_KEY, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET]):
+    raise ValueError(
+        "Stripe settings are not configured. "
+        "Please set STRIPE_PUBLISHABLE_KEY, STRIPE_SECRET_KEY, "
+        "and STRIPE_WEBHOOK_SECRET in your environment."
+    )
