@@ -90,6 +90,26 @@ class PaymentViewSet(
         return queryset
 
     @extend_schema(
+        summary="Returns list of payments",
+        description=(
+            "For admin users returns all the payments, "
+            "and for non-admin returns only there own payments"
+        )
+    )
+    def list(self, _request, *_args, **_kwargs):
+        return super().list(_request, *_args, **_kwargs)
+
+    @extend_schema(
+        summary="Returns concreate payment",
+        description=(
+            "Admin users can retrieve any payment, "
+            "non-admin user can retrieve only there own payments"
+        ),
+    )
+    def retrieve(self, _request, *_args, **_kwargs):
+        return super().retrieve(_request, *_args, **_kwargs)
+
+    @extend_schema(
         summary="Handle successful payment",
         description=(
             "Endpoint for handling successful Stripe payment completion. "
