@@ -6,7 +6,6 @@ import signal
 import redis.asyncio as redis
 from redis import exceptions as redis_exceptions
 
-# Imports from current telegram_bot app
 from telegram_bot.bot_core import send_messages_to_users, shutdown_bot_session
 from telegram_bot.config import (
     REDIS_HOST,
@@ -18,10 +17,10 @@ from telegram_bot.config import (
 )
 
 logging.basicConfig(
-    level=getattr(logging, LOG_LEVEL, "INFO"),  # Fallback to INFO
+    level=getattr(logging, LOG_LEVEL, "INFO"),
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
-logger = logging.getLogger(__name__)  # Use __name__ for logger
+logger = logging.getLogger(__name__)
 
 
 async def process_message(message_data_json):
@@ -54,7 +53,6 @@ async def process_message(message_data_json):
             return {}
 
         logger.info(f"Processing message for {len(telegram_ids)} recipients.")
-        # Send messages
         return await send_messages_to_users(telegram_ids, text_message)
 
     except json.JSONDecodeError:
@@ -77,7 +75,6 @@ class TelegramWorker:
 
     def _setup_signal_handlers(self):
         """Sets up signal handlers for proper shutdown."""
-        # Handle SIGINT (Ctrl+C) and SIGTERM
         for sig in [signal.SIGINT, signal.SIGTERM]:
             signal.signal(sig, self._graceful_shutdown)
 
@@ -85,7 +82,6 @@ class TelegramWorker:
         """Signal handler for graceful shutdown."""
         logger.info(f"Received signal {signum}, starting worker shutdown...")
         self.running = False
-        # Additional cleanup logic can be added here if needed
 
     async def connect_to_redis(self):
         """Establishes connection to Redis."""
@@ -98,17 +94,16 @@ class TelegramWorker:
                 port=REDIS_PORT,
                 db=REDIS_DB,
                 password=REDIS_PASSWORD,
-                decode_responses=True,  # Important for strings, not bytes
-                socket_timeout=10,  # Socket operation timeout
-                socket_connect_timeout=5,  # Connection timeout
+                decode_responses=True,
+                socket_timeout=10,
+                socket_connect_timeout=5,
             )
-            await self.redis_client.ping()  # Check connection
+            await self.redis_client.ping()
             logger.info("Successfully connected to Redis.")
         except redis_exceptions.ConnectionError as e:
             logger.error(f"Error connecting to Redis: {e}")
-            # In real conditions, retry logic could be added here
-            self.redis_client = None  # Reset client
-            raise  # Re-raise error for handling in main loop
+            self.redis_client = None
+            raise
 
     async def listen_for_messages(self):
         """Main loop for listening to Redis queue and processing messages."""
@@ -125,15 +120,12 @@ class TelegramWorker:
 
         while self.running:
             try:
-                # BLPOP blocks until an element appears or timeout (1 second)
                 raw_message_tuple = await self.redis_client.blpop(
                     NOTIFICATIONS_QUEUE, timeout=1
                 )
 
-                if not raw_message_tuple:  # Timeout, no messages
-                    await asyncio.sleep(
-                        0.1  # Small wait to avoid CPU overload
-                    )
+                if not raw_message_tuple:
+                    await asyncio.sleep(0.1)
                     continue
 
                 _queue_name, message_data_json = raw_message_tuple
@@ -141,7 +133,6 @@ class TelegramWorker:
                     f"Received raw message from queue: {message_data_json}"
                 )
 
-                # Process message through dedicated function
                 await process_message(message_data_json)
 
             except redis_exceptions.ConnectionError as e:
@@ -160,13 +151,10 @@ class TelegramWorker:
                     )
                     self.running = False
             except Exception as e:
-                # Catch other possible errors in the main listener loop
                 logger.error(
                     f"Critical error in Redis listener loop: {e}",
                     exc_info=True,
                 )
-                # Add logic to wait before next iteration
-                # to avoid rapid cycling of errors
                 await asyncio.sleep(5)
 
         logger.info("TelegramWorker finished listening to queue.")
@@ -185,7 +173,7 @@ async def main_worker_loop():
     worker = TelegramWorker()
     try:
         await worker.connect_to_redis()
-        if worker.redis_client:  # Ensure connection is successful
+        if worker.redis_client:
             await worker.listen_for_messages()
     except redis_exceptions.ConnectionError:
         logger.critical(
@@ -199,13 +187,11 @@ async def main_worker_loop():
     finally:
         logger.info("Finishing TelegramWorker main_worker_loop.")
         await worker.close_redis_connection()
-        await shutdown_bot_session()  # Close aiogram bot session
+        await shutdown_bot_session()
         logger.info("TelegramWorker fully stopped.")
 
 
 if __name__ == "__main__":
-    # This block allows running the worker as a separate script
-    # python -m telegram_bot.worker
     logger.info(
         "Starting Telegram Worker to process messages from Redis queue..."
     )

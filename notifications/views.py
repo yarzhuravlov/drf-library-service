@@ -5,10 +5,39 @@ from django.contrib.auth import authenticate, get_user_model
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.db import IntegrityError
 from notifications.models import TelegramUser
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes
 
 User = get_user_model()
 
 
+@extend_schema(
+    request=None,
+    parameters=[
+        OpenApiParameter(
+            "email",
+            OpenApiTypes.STR,
+            location=OpenApiParameter.QUERY,
+            required=True,
+            description="Email of the user",
+        ),
+        OpenApiParameter(
+            "password",
+            OpenApiTypes.STR,
+            location=OpenApiParameter.QUERY,
+            required=True,
+            description="Password",
+        ),
+        OpenApiParameter(
+            "telegram_id",
+            OpenApiTypes.INT,
+            location=OpenApiParameter.QUERY,
+            required=True,
+            description="Telegram ID",
+        ),
+    ],
+    responses={200: None},
+    description="Link telegram_id to user and get JWT tokens.",
+)
 class RegisterTelegramUserWithJWTView(APIView):
     """
     Accepts POST with email, password, telegram_id.
