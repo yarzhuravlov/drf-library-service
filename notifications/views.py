@@ -5,7 +5,7 @@ from django.contrib.auth import authenticate, get_user_model
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.db import IntegrityError
 from notifications.models import TelegramUser
-from drf_yasg.utils import extend_schema, OpenApiParameter, OpenApiTypes
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes
 
 User = get_user_model()
 
