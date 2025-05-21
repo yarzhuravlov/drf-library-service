@@ -3,12 +3,12 @@ from datetime import date
 from borrowings.models import Borrowing
 from notifications.handlers import send_notification_to_all_admin_users
 
+
 @shared_task
 def check_overdue_borrowings():
     today = date.today()
     overdue_borrowings = Borrowing.objects.filter(
-        expected_return__lte=today,
-        actual_return__isnull=True
+        expected_return__lte=today, actual_return__isnull=True
     )
     if overdue_borrowings.exists():
         for borrowing in overdue_borrowings:
@@ -23,4 +23,6 @@ def check_overdue_borrowings():
             )
             send_notification_to_all_admin_users(message)
     else:
-        send_notification_to_all_admin_users("<b>No borrowings overdue today!</b>")
+        send_notification_to_all_admin_users(
+            "<b>No borrowings overdue today!</b>"
+        )

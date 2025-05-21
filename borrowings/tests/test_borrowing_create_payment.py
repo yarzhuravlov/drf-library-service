@@ -11,12 +11,15 @@ from unittest.mock import patch, MagicMock
 
 User = get_user_model()
 
+
 class BorrowingCreatePaymentTests(TestCase):
     def setUp(self):
         self.client = APIClient()
         self.user = User.objects.create_user(email="u@e.com", password="p")
         author = Author.objects.create(first_name="A", last_name="B")
-        self.book = Book.objects.create(title="T", cover=Book.Covers.HARD, inventory=2, daily_fee=50)
+        self.book = Book.objects.create(
+            title="T", cover=Book.Covers.HARD, inventory=2, daily_fee=50
+        )
         self.book.authors.add(author)
         self.url = reverse("borrowings:borrowing-list")
 
@@ -29,7 +32,8 @@ class BorrowingCreatePaymentTests(TestCase):
         data = {
             "book": self.book.id,
             "borrow_date": localdate(),
-            "expected_return": localdate() + timedelta(days=3)}
+            "expected_return": localdate() + timedelta(days=3),
+        }
         resp = self.client.post(self.url, data)
         self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
 
