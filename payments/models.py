@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 
 from borrowings.models import Borrowing
 
@@ -27,6 +28,7 @@ class Payment(models.Model):
         default=Statuses.PENDING,
     )
     type = models.CharField(max_length=10, choices=Types.choices)
+    expiration_at = models.DateTimeField(default=timezone.now)
 
     def __str__(self):
         return f"Payment by {self.borrowing.user.email}."
@@ -39,3 +41,7 @@ class Payment(models.Model):
                 name="unique_type_borrowing",
             )
         ]
+
+    def is_expired(self) -> bool:
+        """Check if payment session is expired based on expiration_at field."""
+        return self.expiration_at <= timezone.now()

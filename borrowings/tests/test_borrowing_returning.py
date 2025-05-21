@@ -3,6 +3,7 @@ from django.test import TestCase
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient
+from unittest.mock import patch, MagicMock
 
 from borrowings.models import Borrowing
 from books.models import Book, Author
@@ -47,7 +48,9 @@ class BorrowingReturnTests(TestCase):
             "borrowings:borrowing-return-borrowing", args=[self.borrowing.id]
         )
 
-    def test_admin_can_return_borrowing(self):
+    @patch("payments.services.create_stripe_session")
+    def test_admin_can_return_borrowing(self, mock_session):
+        mock_session.return_value = MagicMock(url="test_url", id="test_id")
         self.client.force_authenticate(user=self.staff_user)
         prev_inventory = self.book.inventory
 
@@ -66,7 +69,9 @@ class BorrowingReturnTests(TestCase):
 
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
-    def test_cannot_return_twice(self):
+    @patch("payments.services.create_stripe_session")
+    def test_cannot_return_twice(self, mock_session):
+        mock_session.return_value = MagicMock(url="test_url", id="test_id")
         self.client.force_authenticate(user=self.staff_user)
         self.client.post(self.return_url)
 

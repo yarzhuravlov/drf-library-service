@@ -39,4 +39,4 @@ class BorrowingCreatePaymentTests(TestCase):
         payment = payments.first()
         self.assertEqual(payment.session_url, fake.url)
         self.assertEqual(payment.session_id, fake.id)
-        self.assertEqual(payment.money_to_pay, 3 * 50)
+        self.assertEqual(payment.money_to_pay, 3 * 50 * 100)
