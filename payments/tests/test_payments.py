@@ -170,8 +170,40 @@ class RenewPaymentViewTests(APITestCase):
 
 
 class WebhookTests(APITestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            email="test@test.com",
+            password="testpass123"
+        )
+        self.author = Author.objects.create(
+            first_name="Test",
+            last_name="Author"
+        )
+        self.book = Book.objects.create(
+            title="Test Book",
+            cover="HARD",
+            inventory=1,
+            daily_fee=10
+        )
+        self.book.authors.add(self.author)
+        self.borrowing = Borrowing.objects.create(
+            user=self.user,
+            book=self.book,
+            borrow_date="2024-01-01",
+            expected_return="2024-12-31"
+        )
+        self.payment = Payment.objects.create(
+            borrowing=self.borrowing,
+            status="PENDING",
+            type="PAYMENT",
+            session_url="https://test.com",
+            session_id="test_session_id",
+            money_to_pay=15.00
+        )
+
     @patch("stripe.Webhook.construct_event")
-    def test_webhook_successful_payment(self, mock_construct_event):
+    @patch("stripe.checkout.Session.retrieve")
+    def test_webhook_successful_payment(self, mock_retrieve, mock_construct_event):
         """Test webhook handling for successful payment"""
         mock_event = type("Event", (), {
             "type": "checkout.session.completed",
@@ -181,6 +213,13 @@ class WebhookTests(APITestCase):
         })
         mock_construct_event.return_value = mock_event
         
+        mock_session = type("Session", (), {
+            "id": "test_session_id",
+            "payment_status": "paid",
+            "status": "complete"
+        })
+        mock_retrieve.return_value = mock_session
+        
         url = reverse("payments:stripe-webhook")
         response = self.client.post(
             url,
@@ -189,6 +228,11 @@ class WebhookTests(APITestCase):
         )
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+        mock_retrieve.assert_called_once_with("test_session_id")
+        
+        # Verify payment was updated
+        self.payment.refresh_from_db()
+        self.assertEqual(self.payment.status, "paid")
 
     @patch("stripe.Webhook.construct_event")
     def test_webhook_invalid_signature(self, mock_construct_event):
@@ -199,7 +243,7 @@ class WebhookTests(APITestCase):
         response = self.client.post(
             url,
             data={},
-            HTTP_STRIPE_SIGNATURE="invalid_signature"
+            HTTP_STRIPE_SIGNATURE="test_signature"
         )
         
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST) 
