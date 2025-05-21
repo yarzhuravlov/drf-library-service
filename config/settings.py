@@ -17,6 +17,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+FRONTEND_DOMAIN = os.getenv("FRONTEND_DOMAIN", "localhost:3000")
+FRONTEND_PROTOCOL = os.getenv("FRONTEND_PROTOCOL", "http")
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -217,7 +220,8 @@ DJOSER = {
         "user": "accounts.serializers.UserSerializer",
         "current_user": "accounts.serializers.UserSerializer",
     },
-    "DOMAIN": "127.0.0.1:8000",
+    "DOMAIN": FRONTEND_DOMAIN,
+    "PROTOCOL": FRONTEND_PROTOCOL,
     "SITE_NAME": "ReadRiot",
     "EMAIL": {
         "activation": "accounts.email.ActivationEmail",
