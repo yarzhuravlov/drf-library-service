@@ -1,3 +1,4 @@
+from django.conf import settings
 from djoser.email import ActivationEmail as DjoserActivationEmail
 
 
@@ -6,5 +7,9 @@ class ActivationEmail(DjoserActivationEmail):
 
     def get_context_data(self):
         context = super().get_context_data()
-        context["activation_url"] = context.get("url", "")
+        rel_url = context.get("url", "").lstrip("/")
+        context["activation_url"] = (
+            f"{settings.FRONTEND_PROTOCOL}://"
+            f"{settings.FRONTEND_DOMAIN}/{rel_url}"
+        )
         return context
