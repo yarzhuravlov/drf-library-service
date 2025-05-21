@@ -4,7 +4,11 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiResponse
+from drf_spectacular.utils import (
+    extend_schema,
+    OpenApiParameter,
+    OpenApiResponse,
+)
 from borrowings.models import Borrowing
 from borrowings.serializers import (
     BorrowingSerializer,
@@ -59,23 +63,23 @@ class BorrowingViewSet(viewsets.ModelViewSet):
         ),
         parameters=[
             OpenApiParameter(
-                name='is_active',
+                name="is_active",
                 type=str,
                 location=OpenApiParameter.QUERY,
-                description='Filter by active (true) or returned (false) borrowings.',
-                enum=['true', 'false']
+                description="Filter by active (true) or returned (false) borrowings.",
+                enum=["true", "false"],
             ),
             OpenApiParameter(
-                name='user_id',
+                name="user_id",
                 type=int,
                 location=OpenApiParameter.QUERY,
-                description='Filter by user ID (staff only).'
+                description="Filter by user ID (staff only).",
             ),
         ],
         responses={
             200: BorrowingListSerializer(many=True),
-            401: OpenApiResponse(description="Unauthorized")
-        }
+            401: OpenApiResponse(description="Unauthorized"),
+        },
     )
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
@@ -89,10 +93,12 @@ class BorrowingViewSet(viewsets.ModelViewSet):
         request=BorrowingSerializer,
         responses={
             201: BorrowingSerializer,
-            400: OpenApiResponse(description="Invalid data or book unavailable"),
+            400: OpenApiResponse(
+                description="Invalid data or book unavailable"
+            ),
             401: OpenApiResponse(description="Unauthorized"),
-            403: OpenApiResponse(description="Pending payments detected")
-        }
+            403: OpenApiResponse(description="Pending payments detected"),
+        },
     )
     def create(self, request, *args, **kwargs):
         return super().create(request, *args, **kwargs)
@@ -103,8 +109,8 @@ class BorrowingViewSet(viewsets.ModelViewSet):
         responses={
             200: BorrowingRetrieveSerializer,
             401: OpenApiResponse(description="Unauthorized"),
-            404: OpenApiResponse(description="Borrowing not found")
-        }
+            404: OpenApiResponse(description="Borrowing not found"),
+        },
     )
     def retrieve(self, request, *args, **kwargs):
         return super().retrieve(request, *args, **kwargs)
@@ -120,8 +126,8 @@ class BorrowingViewSet(viewsets.ModelViewSet):
             200: BorrowingSerializer,
             401: OpenApiResponse(description="Unauthorized"),
             403: OpenApiResponse(description="Forbidden for non-staff"),
-            404: OpenApiResponse(description="Borrowing not found")
-        }
+            404: OpenApiResponse(description="Borrowing not found"),
+        },
     )
     def update(self, request, *args, **kwargs):
         return super().update(request, *args, **kwargs)
@@ -137,8 +143,8 @@ class BorrowingViewSet(viewsets.ModelViewSet):
             200: BorrowingSerializer,
             401: OpenApiResponse(description="Unauthorized"),
             403: OpenApiResponse(description="Forbidden for non-staff"),
-            404: OpenApiResponse(description="Borrowing not found")
-        }
+            404: OpenApiResponse(description="Borrowing not found"),
+        },
     )
     def partial_update(self, request, *args, **kwargs):
         return super().partial_update(request, *args, **kwargs)
@@ -150,8 +156,8 @@ class BorrowingViewSet(viewsets.ModelViewSet):
             204: OpenApiResponse(description="Borrowing deleted"),
             401: OpenApiResponse(description="Unauthorized"),
             403: OpenApiResponse(description="Forbidden for non-staff"),
-            404: OpenApiResponse(description="Borrowing not found")
-        }
+            404: OpenApiResponse(description="Borrowing not found"),
+        },
     )
     def destroy(self, request, *args, **kwargs):
         return super().destroy(request, *args, **kwargs)
@@ -168,8 +174,8 @@ class BorrowingViewSet(viewsets.ModelViewSet):
             400: OpenApiResponse(description="Borrowing already returned"),
             401: OpenApiResponse(description="Unauthorized"),
             403: OpenApiResponse(description="Forbidden for non-staff"),
-            404: OpenApiResponse(description="Borrowing not found")
-        }
+            404: OpenApiResponse(description="Borrowing not found"),
+        },
     )
     @action(
         detail=True,

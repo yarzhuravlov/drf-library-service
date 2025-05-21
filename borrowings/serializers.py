@@ -9,13 +9,12 @@ from payments.serializers import PaymentSerializer
 
 class BorrowingSerializer(serializers.ModelSerializer):
     book = serializers.PrimaryKeyRelatedField(
-        queryset=Book.objects.all(),
-        help_text="ID of the book to borrow."
+        queryset=Book.objects.all(), help_text="ID of the book to borrow."
     )
     payments = PaymentSerializer(
         many=True,
         read_only=True,
-        help_text="List of payments associated with this borrowing."
+        help_text="List of payments associated with this borrowing.",
     )
     borrow_date = serializers.DateField(
         help_text="Date when the book was borrowed."
@@ -25,7 +24,7 @@ class BorrowingSerializer(serializers.ModelSerializer):
     )
     actual_return = serializers.DateField(
         read_only=True,
-        help_text="Actual return date of the book (null if not returned)."
+        help_text="Actual return date of the book (null if not returned).",
     )
 
     class Meta:
@@ -59,7 +58,7 @@ class BorrowingListSerializer(serializers.ModelSerializer):
         slug_field="title",
         many=False,
         read_only=True,
-        help_text="Title of the borrowed book."
+        help_text="Title of the borrowed book.",
     )
     borrow_date = serializers.DateField(
         help_text="Date when the book was borrowed."
@@ -85,12 +84,12 @@ class BorrowingListSerializer(serializers.ModelSerializer):
 class BorrowingRetrieveSerializer(BorrowingSerializer):
     book = BookSerializer(
         read_only=True,
-        help_text="Detailed information about the borrowed book."
+        help_text="Detailed information about the borrowed book.",
     )
     user = serializers.SlugRelatedField(
         slug_field="email",
         read_only=True,
-        help_text="Email of the user who borrowed the book."
+        help_text="Email of the user who borrowed the book.",
     )
 
     class Meta:
