@@ -27,17 +27,7 @@ class GenericViewSet(viewsets.ViewSetMixin, GenericAPIView):
     ] = None
 
     def get_permission_classes_or_none(self):
-        if self.action_permission_classes:
-            permission_classes = self.action_permission_classes.get(
-                self.action
-            )
-
-            if permission_classes is None and self.action == "partial_update":
-                permission_classes = self.action_permission_classes.get(
-                    "update"
-                )
-
-            return permission_classes
+        return map_action_to_classes(self, "action_permission_classes")
 
     def get_permissions(self):
         permissions = []
@@ -57,16 +47,9 @@ class GenericViewSet(viewsets.ViewSetMixin, GenericAPIView):
     def get_request_serializer_class_or_none(
         self,
     ) -> Optional[Type[BaseSerializer]]:
-        serializer_class = None
-
-        if self.request_action_serializer_classes:
-            serializer_class = self.request_action_serializer_classes.get(
-                self.action
-            )
-            if serializer_class is None and self.action == "partial_update":
-                serializer_class = self.request_action_serializer_classes.get(
-                    "update"
-                )
+        serializer_class = map_action_to_classes(
+            self, "request_action_serializer_classes"
+        )
 
         if serializer_class is None:
             return super().get_request_serializer_class_or_none()
@@ -82,17 +65,9 @@ class GenericViewSet(viewsets.ViewSetMixin, GenericAPIView):
     def get_response_serializer_class_or_none(
         self,
     ) -> Optional[Type[BaseSerializer]]:
-        serializer_class = None
-
-        if self.response_action_serializer_classes:
-            serializer_class = self.response_action_serializer_classes.get(
-                self.action
-            )
-
-            if serializer_class is None and self.action == "partial_update":
-                serializer_class = self.response_action_serializer_classes.get(
-                    "update"
-                )
+        serializer_class = map_action_to_classes(
+            self, "response_action_serializer_classes"
+        )
 
         if serializer_class is None:
             return super().get_response_serializer_class_or_none()
@@ -111,6 +86,20 @@ class GenericViewSet(viewsets.ViewSetMixin, GenericAPIView):
             f"configure one of these attributes: "
             f"`response_action_serializer_classes`, `serializer_class`"
         )
+
+
+def map_action_to_classes(view: GenericViewSet, action_classes_arg_name: str):
+    if hasattr(view, action_classes_arg_name) and (
+        action_classes := getattr(view, action_classes_arg_name)
+    ):
+        classes = action_classes.get(view.action)
+
+        if classes is None and view.action == "partial_update":
+            classes = action_classes.get(view.action)
+
+        return classes
+
+    return None
 
 
 class ReadOnlyModelViewSet(RetrieveModelMixin, ListModelMixin, GenericViewSet):
