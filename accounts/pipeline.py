@@ -1,4 +1,5 @@
 from social_core.pipeline.social_auth import associate_user as base_associate
+from social_django.models import UserSocialAuth
 
 
 def stop_if_social_exists(strategy, backend, uid, *args, **kwargs):
@@ -8,12 +9,14 @@ def stop_if_social_exists(strategy, backend, uid, *args, **kwargs):
     returns them. If the social account exists but the user does not, deletes
     the broken social link.
     """
-    from social_django.models import UserSocialAuth
     try:
         social = UserSocialAuth.objects.get(uid=uid, provider=backend.name)
+        if not social.user_id:
+            social.delete()
+            return
         try:
-            user = social.user  # Will raise DoesNotExist if user is broken
-        except Exception:
+            user = social.user
+        except social.user._meta.model.DoesNotExist:
             social.delete()
             return
         return {"social": social, "user": user}
@@ -39,7 +42,6 @@ def rebind_social_user(strategy, backend, uid, user=None, *args, **kwargs):
     exists and is linked to a different user, updates the link to the given
     user. Does nothing if the social account does not exist.
     """
-    from social_django.models import UserSocialAuth
     try:
         social = UserSocialAuth.objects.get(uid=uid, provider=backend.name)
         if user and social.user != user:
