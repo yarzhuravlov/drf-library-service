@@ -1,3 +1,4 @@
+from django.db import transaction
 from django.utils.timezone import localdate
 from rest_framework import serializers
 from books.models import Book
@@ -47,10 +48,12 @@ class BorrowingSerializer(serializers.ModelSerializer):
         return book
 
     def create(self, validated_data):
-        book = validated_data["book"]
-        book.inventory -= 1
-        book.save()
-        return super().create(validated_data)
+        with transaction.atomic():
+            book = validated_data["book"]
+            book.inventory -= 1
+            book.save()
+            borrowing = super().create(validated_data)
+        return borrowing
 
 
 class BorrowingListSerializer(serializers.ModelSerializer):
@@ -117,14 +120,15 @@ class BorrowingReturnSerializer(serializers.ModelSerializer):
         return data
 
     def update(self, instance, validated_data):
-        today = localdate()
-        instance.actual_return = today
-        instance.book.inventory += 1
-        instance.book.save()
-        instance.save()
+        with transaction.atomic():
+            today = localdate()
+            instance.actual_return = today
+            instance.book.inventory += 1
+            instance.book.save()
+            instance.save()
 
-        if today > instance.expected_return:
-            request = self.context.get("request")
-            create_fine_payment(instance, request)
+            if today > instance.expected_return:
+                request = self.context.get("request")
+                create_fine_payment(instance, request)
 
         return instance

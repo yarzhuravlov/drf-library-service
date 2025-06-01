@@ -35,7 +35,7 @@ class BorrowingViewSet(viewsets.ModelViewSet):
         user_id_param = self.request.query_params.get("user_id")
 
         if user.is_staff and user_id_param:
-            queryset = self.queryset.filter(user__id=user_id_param)
+            queryset = queryset.filter(user__id=user_id_param)
 
         if is_active_param is not None:
             if is_active_param.lower() == "true":
@@ -57,17 +57,18 @@ class BorrowingViewSet(viewsets.ModelViewSet):
     @extend_schema(
         summary="List all borrowings",
         description=(
-            f"Returns a list of borrowings."
-            f" Non-staff users see only their own borrowings. "
-            f"Staff users can filter by user_id"
-            f" or is_active status (true for active, false for returned)."
+            "Returns a list of borrowings. "
+            "Non-staff users see only their own borrowings. "
+            "Staff users can filter by user_id"
+            " or is_active status (true for active, false for returned)."
         ),
         parameters=[
             OpenApiParameter(
                 name="is_active",
                 type=str,
                 location=OpenApiParameter.QUERY,
-                description="Filter by active (true) or returned (false) borrowings.",
+                description=("Filter by active (true) or returned (false) "
+                             "borrowings."),
                 enum=["true", "false"],
             ),
             OpenApiParameter(
@@ -88,9 +89,9 @@ class BorrowingViewSet(viewsets.ModelViewSet):
     @extend_schema(
         summary="Create a new borrowing",
         description=(
-            f"Creates a new borrowing for an authenticated user. "
-            f"Requires book ID and borrow date."
-            f" Checks for pending payments and decreases book inventory."
+            "Creates a new borrowing for an authenticated user. "
+            "Requires book ID and borrow date."
+            " Checks for pending payments and decreases book inventory."
         ),
         request=BorrowingSerializer,
         responses={
@@ -107,8 +108,8 @@ class BorrowingViewSet(viewsets.ModelViewSet):
 
     @extend_schema(
         summary="Retrieve borrowing details",
-        description=f"Returns detailed information"
-                    f" about a specific borrowing by ID.",
+        description=("Returns detailed information"
+                     " about a specific borrowing by ID."),
         responses={
             200: BorrowingRetrieveSerializer,
             401: OpenApiResponse(description="Unauthorized"),
@@ -122,8 +123,8 @@ class BorrowingViewSet(viewsets.ModelViewSet):
         summary="Update borrowing",
         description=(
             "Updates all fields of a borrowing. "
-            f"Accessible only to staff users."
-            f" Typically used to modify borrow or return dates."
+            "Accessible only to staff users."
+            " Typically used to modify borrow or return dates."
         ),
         request=BorrowingSerializer,
         responses={
@@ -155,7 +156,8 @@ class BorrowingViewSet(viewsets.ModelViewSet):
 
     @extend_schema(
         summary="Delete borrowing",
-        description="Deletes a borrowing by ID. Accessible only to staff users.",
+        description="Deletes a borrowing by ID."
+                    " Accessible only to staff users.",
         responses={
             204: OpenApiResponse(description="Borrowing deleted"),
             401: OpenApiResponse(description="Unauthorized"),
@@ -169,9 +171,9 @@ class BorrowingViewSet(viewsets.ModelViewSet):
     @extend_schema(
         summary="Return a borrowed book",
         description=(
-            f"Marks a borrowing as returned,"
-            f" updates book inventory,"
-            f" and creates a fine payment if overdue. "
+            "Marks a borrowing as returned, "
+            "updates book inventory, "
+            "and creates a fine payment if overdue. "
             "Accessible only to staff users."
         ),
         request=BorrowingReturnSerializer,
@@ -211,12 +213,11 @@ class BorrowingViewSet(viewsets.ModelViewSet):
         if pending_exists:
             raise ValidationError(
                 {
-                    "detail": f"You have pending payments."
-                              f" Please settle them"
-                              f" before borrowing another book."
+                    "detail": ("You have pending payments. "
+                               "Please settle them "
+                               "before borrowing another book.")
                 }
             )
-
         with transaction.atomic():
             borrowing = serializer.save(user=user)
             create_payment(borrowing, self.request)
