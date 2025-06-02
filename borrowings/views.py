@@ -4,7 +4,11 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-
+from drf_spectacular.utils import (
+    extend_schema,
+    OpenApiParameter,
+    OpenApiResponse,
+)
 from borrowings.models import Borrowing
 from borrowings.serializers import (
     BorrowingSerializer,
@@ -31,7 +35,7 @@ class BorrowingViewSet(viewsets.ModelViewSet):
         user_id_param = self.request.query_params.get("user_id")
 
         if user.is_staff and user_id_param:
-            queryset = self.queryset.filter(user__id=user_id_param)
+            queryset = queryset.filter(user__id=user_id_param)
 
         if is_active_param is not None:
             if is_active_param.lower() == "true":
@@ -50,6 +54,137 @@ class BorrowingViewSet(viewsets.ModelViewSet):
             return BorrowingReturnSerializer
         return BorrowingSerializer
 
+    @extend_schema(
+        summary="List all borrowings",
+        description=(
+            "Returns a list of borrowings. "
+            "Non-staff users see only their own borrowings. "
+            "Staff users can filter by user_id"
+            " or is_active status (true for active, false for returned)."
+        ),
+        parameters=[
+            OpenApiParameter(
+                name="is_active",
+                type=str,
+                location=OpenApiParameter.QUERY,
+                description=("Filter by active (true) or returned (false) "
+                             "borrowings."),
+                enum=["true", "false"],
+            ),
+            OpenApiParameter(
+                name="user_id",
+                type=int,
+                location=OpenApiParameter.QUERY,
+                description="Filter by user ID (staff only).",
+            ),
+        ],
+        responses={
+            200: BorrowingListSerializer(many=True),
+            401: OpenApiResponse(description="Unauthorized"),
+        },
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @extend_schema(
+        summary="Create a new borrowing",
+        description=(
+            "Creates a new borrowing for an authenticated user. "
+            "Requires book ID and borrow date."
+            " Checks for pending payments and decreases book inventory."
+        ),
+        request=BorrowingSerializer,
+        responses={
+            201: BorrowingSerializer,
+            400: OpenApiResponse(
+                description="Invalid data or book unavailable"
+            ),
+            401: OpenApiResponse(description="Unauthorized"),
+            403: OpenApiResponse(description="Pending payments detected"),
+        },
+    )
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
+
+    @extend_schema(
+        summary="Retrieve borrowing details",
+        description=("Returns detailed information"
+                     " about a specific borrowing by ID."),
+        responses={
+            200: BorrowingRetrieveSerializer,
+            401: OpenApiResponse(description="Unauthorized"),
+            404: OpenApiResponse(description="Borrowing not found"),
+        },
+    )
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+
+    @extend_schema(
+        summary="Update borrowing",
+        description=(
+            "Updates all fields of a borrowing. "
+            "Accessible only to staff users."
+            " Typically used to modify borrow or return dates."
+        ),
+        request=BorrowingSerializer,
+        responses={
+            200: BorrowingSerializer,
+            401: OpenApiResponse(description="Unauthorized"),
+            403: OpenApiResponse(description="Forbidden for non-staff"),
+            404: OpenApiResponse(description="Borrowing not found"),
+        },
+    )
+    def update(self, request, *args, **kwargs):
+        return super().update(request, *args, **kwargs)
+
+    @extend_schema(
+        summary="Partially update borrowing",
+        description=(
+            "Updates specific fields of a borrowing. "
+            "Accessible only to staff users."
+        ),
+        request=BorrowingSerializer,
+        responses={
+            200: BorrowingSerializer,
+            401: OpenApiResponse(description="Unauthorized"),
+            403: OpenApiResponse(description="Forbidden for non-staff"),
+            404: OpenApiResponse(description="Borrowing not found"),
+        },
+    )
+    def partial_update(self, request, *args, **kwargs):
+        return super().partial_update(request, *args, **kwargs)
+
+    @extend_schema(
+        summary="Delete borrowing",
+        description="Deletes a borrowing by ID."
+                    " Accessible only to staff users.",
+        responses={
+            204: OpenApiResponse(description="Borrowing deleted"),
+            401: OpenApiResponse(description="Unauthorized"),
+            403: OpenApiResponse(description="Forbidden for non-staff"),
+            404: OpenApiResponse(description="Borrowing not found"),
+        },
+    )
+    def destroy(self, request, *args, **kwargs):
+        return super().destroy(request, *args, **kwargs)
+
+    @extend_schema(
+        summary="Return a borrowed book",
+        description=(
+            "Marks a borrowing as returned, "
+            "updates book inventory, "
+            "and creates a fine payment if overdue. "
+            "Accessible only to staff users."
+        ),
+        request=BorrowingReturnSerializer,
+        responses={
+            200: OpenApiResponse(description="Book returned successfully"),
+            400: OpenApiResponse(description="Borrowing already returned"),
+            401: OpenApiResponse(description="Unauthorized"),
+            403: OpenApiResponse(description="Forbidden for non-staff"),
+            404: OpenApiResponse(description="Borrowing not found"),
+        },
+    )
     @action(
         detail=True,
         methods=["post"],
@@ -58,7 +193,7 @@ class BorrowingViewSet(viewsets.ModelViewSet):
     def return_borrowing(self, request, pk=None):
         if not request.user.is_staff:
             return Response(
-                {"detail:" "Only admin can return borrowings."},
+                {"detail": "Only admin can return borrowings."},
                 status=status.HTTP_403_FORBIDDEN,
             )
 
@@ -78,10 +213,11 @@ class BorrowingViewSet(viewsets.ModelViewSet):
         if pending_exists:
             raise ValidationError(
                 {
-                    "detail": "You have pending payments. Please settle them before borrowing another book."  # noqa: E501
+                    "detail": ("You have pending payments. "
+                               "Please settle them "
+                               "before borrowing another book.")
                 }
             )
-
         with transaction.atomic():
             borrowing = serializer.save(user=user)
             create_payment(borrowing, self.request)
